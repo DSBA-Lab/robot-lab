@@ -93,8 +93,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* work area */
 /* Drawing column width = fitted room width at this window height + side margins.
    Stage height is 100vh − 44 (bar) − 27 (status); the plan keeps 28 + 58 px above/below and 36 + 68 px left/right (VIEW_PAD in the script),
-   and room + walls is 371 × 872 cm, so width = (100vh − 71 − 86) × 371/872 + 104, plus 8 px of slack. */
-.work{display:grid;grid-template-columns:clamp(216px,15vw,236px) clamp(320px,calc((100vh - 157px) * .4255 + 112px),44vw) minmax(0,1fr);min-height:0}
+   and room + walls is 371 × 872 cm, so the fitted drawing is (100vh − 71 − 86) × 371/872 + 104 px wide.
+   The column adds 100 px of open space on each side of that (plus 8 px of slack); on small windows the 44vw cap eats the open space first, not the plan. */
+.work{display:grid;grid-template-columns:clamp(216px,15vw,236px) clamp(320px,calc((100vh - 157px) * .4255 + 312px),44vw) minmax(0,1fr);min-height:0}
 .work.big{grid-template-columns:minmax(0,1fr)}
 .work.big .rail,.work.big .sheet{display:none}
 .rail,.side{overflow-y:auto;min-height:0;min-width:0;background:var(--panel);scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
