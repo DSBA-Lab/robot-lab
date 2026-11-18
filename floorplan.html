@@ -92,9 +92,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* work area */
 /* Drawing column width = fitted room width at this window height + side margins.
-   Stage height is 100vh − 44 (bar) − 27 (status); the plan keeps 28 + 58 px above/below and 16 + 48 px left/right (VIEW_PAD in the script),
-   and room + walls is 371 × 872 cm, so width = (100vh − 71 − 86) × 371/872 + 64, plus 8 px of slack. */
-.work{display:grid;grid-template-columns:clamp(216px,15vw,236px) clamp(300px,calc((100vh - 157px) * .4255 + 72px),42vw) minmax(0,1fr);min-height:0}
+   Stage height is 100vh − 44 (bar) − 27 (status); the plan keeps 28 + 58 px above/below and 36 + 68 px left/right (VIEW_PAD in the script),
+   and room + walls is 371 × 872 cm, so width = (100vh − 71 − 86) × 371/872 + 104, plus 8 px of slack. */
+.work{display:grid;grid-template-columns:clamp(216px,15vw,236px) clamp(320px,calc((100vh - 157px) * .4255 + 112px),44vw) minmax(0,1fr);min-height:0}
 .work.big{grid-template-columns:minmax(0,1fr)}
 .work.big .rail,.work.big .sheet{display:none}
 .rail,.side{overflow-y:auto;min-height:0;min-width:0;background:var(--panel);scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
@@ -631,7 +631,7 @@ function redo() { if (hi < hist.length - 1) { hi++; restore(hist[hi]); saveLocal
 
 /* ───────── view ───────── */
 const MAX_SCALE = 8;
-const VIEW_PAD = { l: 16, r: 48, t: 28, b: 58 }; // 도면 둘레 여백 (px): 위 창문 표시, 오른쪽·아래 치수선. .work의 도면 열 폭 계산식과 맞춰 둠
+const VIEW_PAD = { l: 36, r: 68, t: 28, b: 58 }; // 도면 둘레 여백 (px): 위 창문 표시, 오른쪽·아래 치수선. .work의 도면 열 폭 계산식과 맞춰 둠
 function fitScale() {
   const cw = stage.clientWidth || 600, ch = stage.clientHeight || 600, P = VIEW_PAD, R = state.room;
   return Math.max(0.05, Math.min((cw - P.l - P.r) / (R.w + 2 * WALL_T), (ch - P.t - P.b) / (R.d + 2 * WALL_T)));
