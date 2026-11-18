@@ -14,6 +14,7 @@
   --equip-fill:#cfe8e4; --equip-line:#1c746d;
   --zone-fill:rgba(190,150,0,.10); --zone-line:#94730a;
   --bad:#c2253a; --bad-fill:rgba(194,37,58,.22); --ok:#1c7f47;
+  --stage3d:#d6dee7;
   --font-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
   --font-data:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
 }
@@ -28,7 +29,7 @@
     --robot-fill:rgba(255,154,77,.26); --robot-line:#ff9a4d;
     --equip-fill:rgba(94,210,200,.20); --equip-line:#5ed2c8;
     --zone-fill:rgba(230,195,74,.10); --zone-line:#e6c34a;
-    --bad:#ff7384; --bad-fill:rgba(255,115,132,.26); --ok:#5fd08d;
+    --bad:#ff7384; --bad-fill:rgba(255,115,132,.26); --ok:#5fd08d; --stage3d:#3a5676;
     color-scheme:dark;
   }
 }
@@ -42,7 +43,7 @@
   --robot-fill:rgba(255,154,77,.26); --robot-line:#ff9a4d;
   --equip-fill:rgba(94,210,200,.20); --equip-line:#5ed2c8;
   --zone-fill:rgba(230,195,74,.10); --zone-line:#e6c34a;
-  --bad:#ff7384; --bad-fill:rgba(255,115,132,.26); --ok:#5fd08d;
+  --bad:#ff7384; --bad-fill:rgba(255,115,132,.26); --ok:#5fd08d; --stage3d:#3a5676;
   color-scheme:dark;
 }
 
@@ -76,7 +77,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tg select{border:0;background:transparent;padding:0;font-family:var(--font-data);font-size:12px;color:var(--ink)}
 
 /* work area */
-.work{display:grid;grid-template-columns:260px minmax(0,1fr) 272px;gap:12px;min-height:0}
+.work{display:grid;grid-template-columns:260px minmax(0,1fr) 320px;gap:12px;min-height:0}
 .rail,.side{display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:0;min-width:0;padding-right:2px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px 12px}
 .panel h2{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.04em}
@@ -132,6 +133,20 @@ details.panel[open] > summary{margin-bottom:10px}
 .keys{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px}
 .keys dt{font-family:var(--font-data);color:var(--ink)}
 .keys dd{margin:0;color:var(--ink-2)}
+
+/* 3D model viewer */
+.mv-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.mv-head h2{margin:0}
+.btn.sm{padding:2px 8px;font-size:12px;min-height:26px}
+.mv-stage{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:5px;background:var(--stage3d);overflow:hidden}
+.mv-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.mv-stage canvas:active{cursor:grabbing}
+.mv-msg{position:absolute;inset:0;display:grid;place-items:center;margin:0;padding:12px;text-align:center;font-size:12px;color:var(--ink-2);pointer-events:none}
+.mv .btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
+.mv .read a{color:var(--accent-ink)}
+.mv.big{position:fixed;z-index:15;inset:max(16px,5vh) max(16px,6vw);display:flex;flex-direction:column;overflow:auto;box-shadow:0 12px 40px rgba(8,18,32,.35)}
+.mv.big .mv-stage{flex:1 1 auto;aspect-ratio:auto;min-height:240px}
+.mv-backdrop{position:fixed;inset:0;z-index:14;background:rgba(8,18,32,.55)}
 
 /* drawing sheet */
 .sheet{display:grid;grid-template-rows:minmax(0,1fr) auto;border:1px solid var(--line);border-radius:6px;background:var(--sheet);overflow:hidden;min-width:0;min-height:0;position:relative}
@@ -271,14 +286,15 @@ details.panel[open] > summary{margin-bottom:10px}
       <details class="panel">
         <summary>조작법</summary>
         <dl class="keys">
-          <dt>드래그</dt><dd>물체 이동, 빈 곳은 화면 이동</dd>
+          <dt>드래그</dt><dd>물체 이동. 확대했을 때는 빈 곳을 끌어 화면 이동</dd>
           <dt>둥근 손잡이</dt><dd>회전 (15° 단위)</dd>
           <dt>R</dt><dd>90° 회전, Shift+R 15°</dd>
           <dt>방향키</dt><dd>1 cm 이동, Shift 10 cm</dd>
           <dt>Ctrl+D</dt><dd>복제</dd>
           <dt>Delete</dt><dd>삭제</dd>
           <dt>M</dt><dd>줄자 켜기/끄기</dd>
-          <dt>휠 · 핀치</dt><dd>확대/축소</dd>
+          <dt>휠 · 핀치</dt><dd>확대/축소 (도면은 가운데 고정)</dd>
+          <dt>로봇 선택</dt><dd>오른쪽에 3D 모델 표시</dd>
         </dl>
       </details>
     </aside>
@@ -292,6 +308,16 @@ details.panel[open] > summary{margin-bottom:10px}
     </section>
 
     <aside class="side">
+      <section class="panel mv" id="mv" hidden>
+        <div class="mv-head">
+          <h2 id="mv-title">3D 모델</h2>
+          <button type="button" class="btn sm" id="mv-big" aria-pressed="false">크게 보기</button>
+        </div>
+        <div class="mv-stage" id="mv-stage"><p class="mv-msg" id="mv-msg"></p></div>
+        <p class="note">끌어서 회전 · 휠/핀치로 확대 · 오른쪽 버튼(두 손가락)으로 이동 · 바닥 격자 10 cm</p>
+        <div class="row" id="mv-poses"></div>
+        <dl class="read" id="mv-specs"></dl>
+      </section>
       <section class="panel" id="insp">
         <h2>선택한 물체</h2>
         <p class="note" id="insp-empty" style="margin-top:0">도면에서 물체를 누르면 치수와 위치를 수정하고, 벽과 주변 물체까지의 거리를 볼 수 있습니다.</p>
@@ -324,6 +350,8 @@ details.panel[open] > summary{margin-bottom:10px}
   </main>
 </div>
 
+<div class="mv-backdrop" id="mv-backdrop" hidden></div>
+
 <div class="overlay" id="io" hidden>
   <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="io-title">
     <h2 id="io-title">배치 내보내기 · 불러오기</h2>
@@ -351,14 +379,14 @@ const LS_UI = 'pai-lab-plan-ui-v1';
 const WALL_T = 12;
 const ROOM = { w: 347, d: 848, doorX: 20, doorW: 100 }; // 실측 확정값 (cm)
 const SPECS = {
-  openarm2: 'OpenArm 2.0 · 양팔 7자유도 · 팔 리치 606 mm, 팔당 5.5 kg (공식 문서) · 베이스 플레이트 190 × 250 mm · 어깨를 포함한 본체 45 × 25 cm와 어깨 간격 35 cm는 제품 사진으로 추정한 값입니다.',
+  openarm2: 'OpenArm 2.0 · 양팔 7자유도 · 팔 리치 606 mm, 팔당 5.5 kg (공식 문서) · 베이스 플레이트 19 × 25 cm, 팔을 내린 전체 폭 41 cm, 어깨 간격 30.5 cm (공식 URDF 모델 기준).',
   xarm7: 'UFACTORY xArm 7 · 7자유도 · 리치 700 mm · 베이스 Ø126 mm · 본체 13.7 kg · 별도 컨트롤 박스가 필요합니다.',
   so101: 'SO-101 · 베이스 약 11 × 9 cm (공개 CAD 기준) · 리치 약 44 cm (공개 URDF 링크 길이 합산, 그리퍼 끝 기준).',
 };
 const TOP_TYPES = new Set(['openarm2', 'xarm7', 'so101', 'arm', 'pc']); // 책상·테이블 위에 올릴 수 있는 것
 const CATALOG = [
   { group: '로봇', items: [
-    { type: 'openarm2', name: 'OpenArm 2.0', w: 45,   d: 25,   reach: 60.6, armOff: 17.5, cat: 'robot' },
+    { type: 'openarm2', name: 'OpenArm 2.0', w: 41,   d: 25,   reach: 60.6, armOff: 15.25, cat: 'robot' },
     { type: 'xarm7',    name: 'xArm7',       w: 12.6, d: 12.6, reach: 70,   cat: 'robot', round: true },
     { type: 'so101',    name: 'SO-101',      w: 11,   d: 9,    reach: 44,   cat: 'robot' },
   ]},
@@ -398,7 +426,7 @@ function defaultArms() {
   // 보유 로봇팔 4대. 위치는 임시로 방 가운데에 세워 둔 것
   const base = { cat: 'robot', rot: 0, soft: false, lock: false };
   return [
-    { ...base, id: 'openarm', type: 'openarm2', name: 'OpenArm 2.0', x: 173.5, y: 300, w: 45, d: 25, reach: 60.6, armOff: 17.5, round: false },
+    { ...base, id: 'openarm', type: 'openarm2', name: 'OpenArm 2.0', x: 173.5, y: 300, w: 41, d: 25, reach: 60.6, armOff: 15.25, round: false },
     { ...base, id: 'xarm7', type: 'xarm7', name: 'xArm7', x: 173.5, y: 470, w: 12.6, d: 12.6, reach: 70, armOff: 0, round: true },
     { ...base, id: 'so101-1', type: 'so101', name: 'SO-101 #1', x: 125, y: 620, w: 11, d: 9, reach: 44, armOff: 0, round: false },
     { ...base, id: 'so101-2', type: 'so101', name: 'SO-101 #2', x: 225, y: 620, w: 11, d: 9, reach: 44, armOff: 0, round: false },
@@ -444,6 +472,7 @@ function cleanState(s) {
     room.hinge = 'left';
     if (!items.some(it => SPECS[it.type])) items.push(...defaultArms().map(cleanItem));
   }
+  for (const it of items) if (it.type === 'openarm2' && it.w === 45 && it.d === 25 && it.armOff === 17.5) { it.w = 41; it.armOff = 15.25; } // 사진 추정값 → 공식 모델 치수
   items.forEach(it => { while (seen.has(it.id)) it.id = uid(); seen.add(it.id); });
   return { room, items };
 }
@@ -553,10 +582,24 @@ function undo() { if (hi > 0) { hi--; restore(hist[hi]); saveLocal(); pushShared
 function redo() { if (hi < hist.length - 1) { hi++; restore(hist[hi]); saveLocal(); pushShared(); syncToolbar(); } }
 
 /* ───────── view ───────── */
+const MAX_SCALE = 8;
+const viewMargin = () => (stage.clientWidth || 600) < 520 ? 52 : 66; // 치수선이 들어갈 여백 (px)
+function fitScale() {
+  const cw = stage.clientWidth || 600, ch = stage.clientHeight || 600, m = viewMargin(), R = state.room;
+  return Math.max(0.05, Math.min((cw - 2 * m) / (R.w + 2 * WALL_T), (ch - 2 * m) / (R.d + 2 * WALL_T)));
+}
+const clampScale = s => clamp(s, fitScale() * 0.5, MAX_SCALE);
+function panRoom() { // 도면(방 + 벽 + 치수 여백)이 화면보다 큰 만큼만 움직일 수 있음
+  const cw = stage.clientWidth || 600, ch = stage.clientHeight || 600, m = viewMargin(), R = state.room, s = view.scale;
+  return { x: Math.max(0, R.w / 2 + WALL_T + m / s - cw / 2 / s), y: Math.max(0, R.d / 2 + WALL_T + m / s - ch / 2 / s) };
+}
+function clampView() { // 화면보다 작으면 가운데 고정
+  const R = state.room, p = panRoom();
+  view.cx = clamp(view.cx, R.w / 2 - p.x, R.w / 2 + p.x); view.cy = clamp(view.cy, R.d / 2 - p.y, R.d / 2 + p.y);
+}
 function fit() {
-  const cw = stage.clientWidth || 600, ch = stage.clientHeight || 600, m = cw < 520 ? 52 : 66, R = state.room;
-  view.scale = Math.max(0.05, Math.min((cw - 2 * m) / (R.w + 2 * WALL_T), (ch - 2 * m) / (R.d + 2 * WALL_T)));
-  view.cx = R.w / 2; view.cy = R.d / 2; view.fitted = true;
+  const R = state.room;
+  view.scale = fitScale(); view.cx = R.w / 2; view.cy = R.d / 2; view.fitted = true;
 }
 function toWorld(cx, cy) {
   const r = svg.getBoundingClientRect();
@@ -565,9 +608,9 @@ function toWorld(cx, cy) {
 function zoomAt(factor, cx, cy) {
   const r = svg.getBoundingClientRect();
   if (cx == null) { cx = r.left + r.width / 2; cy = r.top + r.height / 2; }
-  const w = toWorld(cx, cy), s = clamp(view.scale * factor, 0.15, 8);
+  const w = toWorld(cx, cy), s = clampScale(view.scale * factor);
   view.scale = s; view.cx = w.x - (cx - r.left - r.width / 2) / s; view.cy = w.y - (cy - r.top - r.height / 2) / s;
-  view.fitted = false; schedule();
+  view.fitted = false; clampView(); schedule();
 }
 
 /* ───────── rendering ───────── */
@@ -577,6 +620,7 @@ function textEm(s) { let n = 0; for (const ch of s) n += ch.charCodeAt(0) > 0x2e
 
 function render() {
   rafOn = false;
+  if (view.fitted) fit(); else { view.scale = clampScale(view.scale); clampView(); }
   const s = view.scale, px = n => +(n / s).toFixed(3);
   const cw = stage.clientWidth || 600, ch = stage.clientHeight || 600;
   svg.setAttribute('viewBox', `${view.cx - cw / 2 / s} ${view.cy - ch / 2 / s} ${cw / s} ${ch / s}`);
@@ -668,7 +712,7 @@ function render() {
 
   svg.innerHTML = h;
   svg.classList.toggle('measuring', ui.measure);
-  renderStatus(); renderList(); syncInspector();
+  renderStatus(); renderList(); syncInspector(); mvSync();
 }
 
 function itemSvg(it, a, px, fs) {
@@ -741,8 +785,7 @@ function syncInspector() {
   for (const [k, v] of rows) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); }
   const ul = $('f-warns'); ul.textContent = '';
   for (const w of a.why) { const li = document.createElement('li'); li.textContent = w; ul.append(li); }
-  const sp = $('f-spec'), spec = SPECS[it.type];
-  sp.hidden = !spec; sp.textContent = spec ? spec + ' 책상·테이블 위에 올려도 겹침으로 보지 않습니다.' : '';
+  const sp = $('f-spec'); sp.hidden = !isTop(it); sp.textContent = isTop(it) ? '책상·테이블 위에 올려도 겹침으로 보지 않습니다.' : '';
 }
 function bindNum(el, fn) {
   el.addEventListener('input', () => { const it = selItem(), v = parseFloat(el.value); if (!it || !Number.isFinite(v)) return; fn(it, v); schedule(); });
@@ -838,8 +881,8 @@ svg.addEventListener('pointermove', e => {
   if (action.type === 'pinch') {
     if (pointers.size < 2) return;
     const [a, b] = [...pointers.values()], r = svg.getBoundingClientRect();
-    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, s = clamp(action.s0 * Math.hypot(a.x - b.x, a.y - b.y) / action.d0, 0.15, 8);
-    view.scale = s; view.cx = action.w0.x - (mx - r.left - r.width / 2) / s; view.cy = action.w0.y - (my - r.top - r.height / 2) / s; view.fitted = false;
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, s = clampScale(action.s0 * Math.hypot(a.x - b.x, a.y - b.y) / action.d0);
+    view.scale = s; view.cx = action.w0.x - (mx - r.left - r.width / 2) / s; view.cy = action.w0.y - (my - r.top - r.height / 2) / s; view.fitted = false; clampView();
   } else if (action.type === 'drag') {
     const it = selItem(); if (!it) return;
     if (!action.moved && Math.hypot(e.clientX - action.sx, e.clientY - action.sy) < 3) return;
@@ -851,7 +894,9 @@ svg.addEventListener('pointermove', e => {
   } else if (action.type === 'pan') {
     const dx = e.clientX - action.sx, dy = e.clientY - action.sy;
     if (!action.moved && Math.hypot(dx, dy) < 4) return;
-    action.moved = true; view.cx = action.cx - dx / view.scale; view.cy = action.cy - dy / view.scale; view.fitted = false; svg.classList.add('panning');
+    action.moved = true;
+    const p = panRoom(); if (!p.x && !p.y) return; // 도면이 화면 안에 다 들어오면 이동하지 않음
+    view.cx = action.cx - dx / view.scale; view.cy = action.cy - dy / view.scale; view.fitted = false; clampView(); svg.classList.add('panning');
   } else if (action.type === 'measure') { ui.m.b = snapPt(w); }
   else return;
   schedule();
@@ -883,7 +928,7 @@ document.addEventListener('keydown', e => {
   if (k === 'delete' || k === 'backspace') { if (selItem()) { e.preventDefault(); deleteSel(); } }
   else if (k === 'r') rotateSel(e.shiftKey ? 15 : 90);
   else if (k === 'm') toggleMeasure();
-  else if (k === 'escape') { if (ui.measure) toggleMeasure(); else { ui.sel = null; schedule(); } }
+  else if (k === 'escape') { if (mvEl.box.classList.contains('big')) mvBig(false); else if (ui.measure) toggleMeasure(); else { ui.sel = null; schedule(); } }
   else if (k.startsWith('arrow') && selItem()) {
     e.preventDefault(); const st = e.shiftKey ? 10 : 1;
     nudge(k === 'arrowleft' ? -st : k === 'arrowright' ? st : 0, k === 'arrowup' ? -st : k === 'arrowdown' ? st : 0);
@@ -1047,6 +1092,177 @@ async function initShared() {
     syncChip();
   }, () => { clearTimeout(timer); shared.dead = true; syncChip(); });
 }
+
+/* ───────── 3D model viewer (three.js is loaded only when a robot is first selected) ───────── */
+const CDN3 = 'https://cdn.jsdelivr.net/npm/three@0.147.0/';
+const MODELS = {
+  openarm2: {
+    file: 'models/openarm2.glb', title: 'OpenArm 2.0',
+    specs: [['구성', '양팔 · 팔당 7자유도 + 그리퍼'], ['리치', '팔당 606 mm'], ['무게', '팔당 5.5 kg'], ['베이스 플레이트', '19 × 25 cm']],
+    src: ['enactic/openarm_description', 'https://github.com/enactic/openarm_description', 'Apache-2.0'],
+    poses: [
+      ['기본', {}],
+      ['준비', { openarm_left_joint4: 1.57, openarm_right_joint4: 1.57 }],
+      ['앞으로 뻗기', { openarm_left_joint1: -1.35, openarm_right_joint1: 1.35, openarm_left_joint4: 0.25, openarm_right_joint4: 0.25 }],
+      ['양옆으로', { openarm_left_joint2: -1.57, openarm_right_joint2: 1.57 }],
+      ['그리퍼 열기', { openarm_left_joint4: 1.57, openarm_right_joint4: 1.57, openarm_left_finger_joint1: 0.7, openarm_right_finger_joint1: -0.7 }],
+    ],
+  },
+  xarm7: {
+    file: 'models/xarm7.glb', title: 'UFACTORY xArm7',
+    specs: [['구성', '7자유도 · 그리퍼 별도'], ['리치', '700 mm'], ['가반하중', '3.5 kg'], ['무게', '13.7 kg'], ['베이스', 'Ø126 mm'], ['기타', '별도 컨트롤 박스 필요']],
+    src: ['xArm-Developer/xarm_ros2', 'https://github.com/xArm-Developer/xarm_ros2', 'BSD-3-Clause'],
+    poses: [
+      ['준비', { joint2: -0.35, joint4: 1.2, joint6: 1.55 }],
+      ['영점', {}],
+      ['앞으로 뻗기', { joint2: 0.9, joint4: 2.3, joint6: 1.4 }],
+      ['왼쪽 집기', { joint1: 0.9, joint2: 0.35, joint4: 1.35, joint6: 1.0 }],
+    ],
+  },
+  so101: {
+    file: 'models/so101.glb', title: 'SO-101',
+    specs: [['구성', '6자유도 (팔 5 + 그리퍼 1)'], ['구동', 'Feetech STS3215 서보 6개'], ['리치', '약 44 cm (URDF 기준)'], ['베이스', '약 11 × 9 cm'], ['생태계', 'Hugging Face LeRobot']],
+    src: ['TheRobotStudio/SO-ARM100', 'https://github.com/TheRobotStudio/SO-ARM100', 'Apache-2.0'],
+    poses: [
+      ['준비', { shoulder_lift: -0.6, elbow_flex: 0.9, wrist_flex: 0.7 }],
+      ['영점', {}],
+      ['접기', { shoulder_lift: -1.74, elbow_flex: 1.69, wrist_flex: 0.3 }],
+      ['앞으로 뻗기', { shoulder_lift: 0.5, elbow_flex: -0.6, wrist_flex: 0.2 }],
+      ['그리퍼 열기', { shoulder_lift: -0.6, elbow_flex: 0.9, wrist_flex: 0.7, gripper: 1.5 }],
+    ],
+  },
+};
+const mv = { shown: null, ready: null, failed: false, cache: new Map(), cur: null, q: {}, pose: 0, raf: 0, anim: 0 };
+const mvEl = { box: $('mv'), stage: $('mv-stage'), msg: $('mv-msg'), poses: $('mv-poses'), specs: $('mv-specs'), title: $('mv-title'), big: $('mv-big'), back: $('mv-backdrop') };
+const mvMsg = t => { mvEl.msg.textContent = t; mvEl.msg.hidden = !t; };
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('script')); document.head.append(s); });
+}
+function mvDraw() { if (mv.raf || !mv.renderer) return; mv.raf = requestAnimationFrame(() => { mv.raf = 0; mv.renderer.render(mv.scene, mv.camera); }); }
+function mvResize() {
+  if (!mv.renderer) return;
+  const w = mvEl.stage.clientWidth, h = mvEl.stage.clientHeight; if (!w || !h) return;
+  mv.renderer.setSize(w, h, false); mv.camera.aspect = w / h; mv.camera.updateProjectionMatrix(); mvDraw();
+}
+function mvGrid() {
+  const T = window.THREE; if (mv.grid) mv.scene.remove(mv.grid);
+  mv.grid = new T.GridHelper(1.2, 12, new T.Color(cssVar('--ink-2') || '#55687d'), new T.Color(cssVar('--grid-major') || '#b9c5d2'));
+  mv.scene.add(mv.grid);
+}
+function mvInit() {
+  if (!mv.ready) mv.ready = (async () => {
+    await loadScript(CDN3 + 'build/three.min.js');
+    await Promise.all([loadScript(CDN3 + 'examples/js/controls/OrbitControls.js'), loadScript(CDN3 + 'examples/js/loaders/GLTFLoader.js')]);
+    const T = window.THREE;
+    const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.outputEncoding = T.sRGBEncoding;
+    mvEl.stage.append(renderer.domElement);
+    renderer.domElement.setAttribute('role', 'img'); renderer.domElement.setAttribute('aria-label', '선택한 로봇의 3D 모델');
+    mv.renderer = renderer; mv.scene = new T.Scene(); mv.camera = new T.PerspectiveCamera(30, 1, 0.01, 60);
+    mv.scene.add(new T.HemisphereLight(0xffffff, 0x7a8798, 0.6));
+    const key = new T.DirectionalLight(0xffffff, 0.5); key.position.set(0.6, 1.2, 1.5); mv.camera.add(key); // 보는 방향에서 비추는 조명
+    mv.scene.add(mv.camera);
+    mv.controls = new T.OrbitControls(mv.camera, renderer.domElement);
+    mv.controls.addEventListener('change', mvDraw);
+    mvGrid();
+    if (window.matchMedia) { const mq = window.matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', () => { mvGrid(); mvDraw(); }); }
+    if ('ResizeObserver' in window) new ResizeObserver(mvResize).observe(mvEl.stage);
+    mvResize();
+  })();
+  return mv.ready;
+}
+function mvPrep(root) { // 관절 노드 수집: 변환 스크립트가 축과 한계를 extras에 넣어 둠
+  const T = window.THREE, joints = {};
+  root.traverse(o => {
+    const u = o.userData;
+    if (u && Array.isArray(u.axis)) joints[o.name] = { node: o, axis: new T.Vector3(u.axis[0], u.axis[1], u.axis[2]).normalize(), lower: u.lower, upper: u.upper, mimic: u.mimic || null, prismatic: u.type === 'prismatic' };
+  });
+  return { root, joints };
+}
+function mvApply(q) {
+  const m = mv.cur; if (!m) return;
+  for (const [name, j] of Object.entries(m.joints)) {
+    let v = j.mimic ? (q[j.mimic.joint] || 0) * j.mimic.multiplier + j.mimic.offset : (q[name] || 0);
+    if (j.lower != null && j.upper != null) v = clamp(v, j.lower, j.upper);
+    if (j.prismatic) j.node.position.copy(j.axis).multiplyScalar(v); else j.node.quaternion.setFromAxisAngle(j.axis, v);
+  }
+  mv.q = q;
+}
+function mvPose(i, animate) {
+  const def = MODELS[mv.shown], m = mv.cur; if (!def || !m) return;
+  mv.pose = i;
+  [...mvEl.poses.children].forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+  const from = mv.q, to = def.poses[i][1];
+  cancelAnimationFrame(mv.anim);
+  const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!animate || still) { mvApply({ ...to }); mvDraw(); return; }
+  const names = Object.keys(m.joints), t0 = performance.now(), D = 520;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / D), e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2, q = {};
+    for (const n of names) q[n] = (from[n] || 0) + ((to[n] || 0) - (from[n] || 0)) * e;
+    mvApply(q); mv.renderer.render(mv.scene, mv.camera);
+    if (t < 1) mv.anim = requestAnimationFrame(step);
+  };
+  mv.anim = requestAnimationFrame(step);
+}
+function mvFrame() { // 모델 전체가 들어오도록 시점을 맞춤
+  const T = window.THREE, m = mv.cur; if (!m) return;
+  m.root.updateMatrixWorld(true);
+  const box = new T.Box3().setFromObject(m.root), c = box.getCenter(new T.Vector3()), size = box.getSize(new T.Vector3());
+  const r = Math.max(size.length() / 2, 0.05), dist = r / Math.sin(rad(mv.camera.fov / 2)) * 1.08;
+  mv.controls.target.copy(c);
+  mv.camera.position.copy(c).add(new T.Vector3(1.15, 0.62, 1.25).normalize().multiplyScalar(dist));
+  mv.camera.near = dist / 100; mv.camera.far = dist * 20; mv.camera.updateProjectionMatrix();
+  mv.controls.minDistance = r * 0.4; mv.controls.maxDistance = dist * 4; mv.controls.update();
+  return size;
+}
+function mvSpecs(def, size) {
+  const dl = mvEl.specs; dl.textContent = '';
+  const rows = def.specs.slice();
+  if (size) rows.push(['모델 크기', `${fmt(size.z * 100)} × ${fmt(size.x * 100)} × ${fmt(size.y * 100)} cm (폭×깊이×높이, 영점 자세)`]);
+  for (const [k, v] of rows) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); }
+  const dt = document.createElement('dt'), dd = document.createElement('dd'), a = document.createElement('a');
+  dt.textContent = '모델 출처'; a.href = def.src[1]; a.target = '_blank'; a.rel = 'noopener'; a.textContent = def.src[0];
+  dd.append(a, ` (${def.src[2]})`); dl.append(dt, dd);
+}
+async function mvShow(type) {
+  const def = MODELS[type]; mv.shown = type;
+  mvEl.box.hidden = !def;
+  if (!def) { mvBig(false); return; }
+  mvEl.title.textContent = '3D 모델 · ' + def.title;
+  mvEl.poses.textContent = '';
+  def.poses.forEach(([name], i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = name; b.setAttribute('aria-pressed', String(i === 0)); b.addEventListener('click', () => mvPose(i, true)); mvEl.poses.append(b); });
+  mvSpecs(def, null);
+  if (mv.failed) { mvMsg('이 브라우저에서는 3D 모델을 표시할 수 없습니다.'); return; }
+  if (mv.cur) { mv.scene.remove(mv.cur.root); mv.cur = null; mvDraw(); }
+  mvMsg('모델을 불러오는 중…');
+  try { await mvInit(); } catch (e) { console.warn('3D viewer:', e); mv.failed = true; mvMsg('이 브라우저에서는 3D 모델을 표시할 수 없습니다.'); return; }
+  if (mv.shown !== type) return;
+  let m = mv.cache.get(type);
+  if (!m) {
+    try { m = mvPrep((await new Promise((res, rej) => new window.THREE.GLTFLoader().load(def.file, res, undefined, rej))).scene); }
+    catch (e) { console.warn('3D model:', e); if (mv.shown === type) mvMsg('모델 파일을 불러오지 못했습니다. 네트워크 연결을 확인해 주세요.'); return; }
+    mv.cache.set(type, m);
+  }
+  if (mv.shown !== type) return;
+  cancelAnimationFrame(mv.anim);
+  mv.cur = m; mv.scene.add(m.root); mv.q = {};
+  mvApply({}); const size = mvFrame(); mvSpecs(def, size);
+  mvPose(0, false); mvMsg(''); mvResize();
+}
+function mvSync() {
+  const it = selItem(), type = it && MODELS[it.type] ? it.type : null;
+  if (type !== mv.shown) mvShow(type);
+}
+function mvBig(on) {
+  mvEl.box.classList.toggle('big', on); mvEl.back.hidden = !on;
+  mvEl.big.setAttribute('aria-pressed', String(on)); mvEl.big.textContent = on ? '닫기' : '크게 보기';
+  mvResize();
+}
+mvEl.big.addEventListener('click', () => mvBig(!mvEl.box.classList.contains('big')));
+mvEl.back.addEventListener('click', () => mvBig(false));
+mvEl.stage.addEventListener('dblclick', () => { if (mv.cur) { const q = mv.q; mvApply({}); mvFrame(); mvApply(q); mvDraw(); } });
 
 /* ───────── boot ───────── */
 hist = [snapshot()]; hi = 0;
