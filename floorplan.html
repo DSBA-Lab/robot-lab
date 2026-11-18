@@ -77,7 +77,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tg select{border:0;background:transparent;padding:0;font-family:var(--font-data);font-size:12px;color:var(--ink)}
 
 /* work area */
-.work{display:grid;grid-template-columns:260px minmax(0,1fr) 320px;gap:12px;min-height:0}
+.work{display:grid;grid-template-columns:250px minmax(0,1fr) clamp(380px,38vw,640px);gap:12px;min-height:0}
 .rail,.side{display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:0;min-width:0;padding-right:2px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px 12px}
 .panel h2{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.04em}
@@ -135,18 +135,46 @@ details.panel[open] > summary{margin-bottom:10px}
 .keys dd{margin:0;color:var(--ink-2)}
 
 /* 3D model viewer */
-.mv-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-.mv-head h2{margin:0}
-.btn.sm{padding:2px 8px;font-size:12px;min-height:26px}
-.mv-stage{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:5px;background:var(--stage3d);overflow:hidden}
+.mv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.mv-head h2{margin:0;font-size:16px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+.mv-tag{margin:2px 0 0;font-size:12px;color:var(--ink-2)}
+.btn.sm{padding:2px 8px;font-size:12px;min-height:26px;white-space:nowrap}
+.mv-stage{position:relative;aspect-ratio:4/3;border:1px solid var(--line);border-radius:5px;background:var(--stage3d);overflow:hidden}
 .mv-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
 .mv-stage canvas:active{cursor:grabbing}
 .mv-msg{position:absolute;inset:0;display:grid;place-items:center;margin:0;padding:12px;text-align:center;font-size:12px;color:var(--ink-2);pointer-events:none}
+.mv-view .note{margin-top:6px}
+.mv-ctl{margin-top:12px}
+.mv-ctl h3{margin:14px 0 6px}
+.mv-ctl .row{margin-top:0}
 .mv .btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
-.mv .read a{color:var(--accent-ink)}
-.mv.big{position:fixed;z-index:15;inset:max(16px,5vh) max(16px,6vw);display:flex;flex-direction:column;overflow:auto;box-shadow:0 12px 40px rgba(8,18,32,.35)}
-.mv.big .mv-stage{flex:1 1 auto;aspect-ratio:auto;min-height:240px}
+.mv-jhead{display:flex;align-items:center;gap:12px;margin:14px 0 6px}
+.mv-jhead h3{margin:0 auto 0 0}
+.mv-jhead .chk{margin:0;font-size:12px}
+#mv-joints{display:grid;gap:10px 20px}
+#mv-joints.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.mv-grp h4{margin:0 0 4px;font-size:12px;font-weight:600}
+.mv-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px 20px}
+.jr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:0 8px}
+.jr .jl{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jr .jv{font-family:var(--font-data);font-size:12px;color:var(--accent-ink);font-variant-numeric:tabular-nums}
+.jr input[type="range"]{grid-column:1/-1;width:100%;height:22px;margin:0;accent-color:var(--accent);cursor:pointer}
+.mv .read{margin-top:0;padding-top:0;border-top:0;gap:5px 14px}
+.mv .read dd{font-family:var(--font-ui);text-align:left}
+.mv a{color:var(--accent-ink)}
+.mv.big{position:fixed;z-index:15;inset:max(16px,4vh) max(16px,4vw);display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(8,18,32,.35)}
+.mv.big .mv-main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,440px);gap:16px}
+.mv.big .mv-view{display:flex;flex-direction:column;min-height:0}
+.mv.big .mv-stage{flex:1 1 auto;aspect-ratio:auto;min-height:220px}
+.mv.big .mv-ctl{margin-top:0;overflow-y:auto;min-height:0;padding-right:4px;scrollbar-width:thin}
+.mv.big .mv-ctl h3:first-child{margin-top:0}
 .mv-backdrop{position:fixed;inset:0;z-index:14;background:rgba(8,18,32,.55)}
+@media (max-width:760px){
+  .mv.big{overflow-y:auto}
+  .mv.big .mv-main{display:block}
+  .mv.big .mv-stage{aspect-ratio:4/3}
+  .mv.big .mv-ctl{margin-top:12px;overflow:visible}
+}
 
 /* drawing sheet */
 .sheet{display:grid;grid-template-rows:minmax(0,1fr) auto;border:1px solid var(--line);border-radius:6px;background:var(--sheet);overflow:hidden;min-width:0;min-height:0;position:relative}
@@ -213,7 +241,7 @@ details.panel[open] > summary{margin-bottom:10px}
 .dlg .msg{min-height:1.4em;margin:8px 0 0;font-size:12px;color:var(--ink-2)}
 .dlg .msg.err{color:var(--bad)}
 
-@media (max-width:900px){
+@media (max-width:1080px){
   html,body{height:auto}
   .app{height:auto;display:flex;flex-direction:column}
   .work{display:flex;flex-direction:column}
@@ -294,7 +322,7 @@ details.panel[open] > summary{margin-bottom:10px}
           <dt>Delete</dt><dd>삭제</dd>
           <dt>M</dt><dd>줄자 켜기/끄기</dd>
           <dt>휠 · 핀치</dt><dd>확대/축소 (도면은 가운데 고정)</dd>
-          <dt>로봇 선택</dt><dd>오른쪽에 3D 모델 표시</dd>
+          <dt>로봇 선택</dt><dd>오른쪽에 3D 모델 · 관절 조절 · 사양</dd>
         </dl>
       </details>
     </aside>
@@ -310,17 +338,32 @@ details.panel[open] > summary{margin-bottom:10px}
     <aside class="side">
       <section class="panel mv" id="mv" hidden>
         <div class="mv-head">
-          <h2 id="mv-title">3D 모델</h2>
+          <div><h2 id="mv-title">3D 모델</h2><p class="mv-tag" id="mv-tag"></p></div>
           <button type="button" class="btn sm" id="mv-big" aria-pressed="false">크게 보기</button>
         </div>
-        <div class="mv-stage" id="mv-stage"><p class="mv-msg" id="mv-msg"></p></div>
-        <p class="note">끌어서 회전 · 휠/핀치로 확대 · 오른쪽 버튼(두 손가락)으로 이동 · 바닥 격자 10 cm</p>
-        <div class="row" id="mv-poses"></div>
-        <dl class="read" id="mv-specs"></dl>
+        <div class="mv-main">
+          <div class="mv-view">
+            <div class="mv-stage" id="mv-stage"><p class="mv-msg" id="mv-msg"></p></div>
+            <p class="note">끌어서 회전 · 휠/핀치로 확대 · 오른쪽 버튼(두 손가락)으로 이동 · 더블클릭으로 시점 초기화 · 바닥 격자 10 cm</p>
+          </div>
+          <div class="mv-ctl">
+            <h3>자세</h3>
+            <div class="row" id="mv-poses"></div>
+            <div class="mv-jhead">
+              <h3>관절 조절</h3>
+              <label class="chk" id="mv-mirror-wrap" hidden><input type="checkbox" id="mv-mirror" checked> 좌우 대칭</label>
+              <button type="button" class="btn sm" id="mv-reset">자세 초기화</button>
+            </div>
+            <div id="mv-joints"></div>
+            <h3>사양</h3>
+            <dl class="read" id="mv-specs"></dl>
+            <p class="note" id="mv-links"></p>
+          </div>
+        </div>
       </section>
       <section class="panel" id="insp">
         <h2>선택한 물체</h2>
-        <p class="note" id="insp-empty" style="margin-top:0">도면에서 물체를 누르면 치수와 위치를 수정하고, 벽과 주변 물체까지의 거리를 볼 수 있습니다.</p>
+        <p class="note" id="insp-empty" style="margin-top:0">도면에서 물체를 누르면 치수와 위치를 수정하고, 벽과 주변 물체까지의 거리를 볼 수 있습니다. 로봇팔을 누르면 3D 모델과 관절 조절, 사양이 함께 나옵니다.</p>
         <div id="insp-body" hidden>
           <label class="fld wide"><span>이름</span><input id="f-name" type="text" maxlength="40"></label>
           <div class="grid2">
@@ -380,7 +423,7 @@ const WALL_T = 12;
 const ROOM = { w: 347, d: 848, doorX: 20, doorW: 100 }; // 실측 확정값 (cm)
 const SPECS = {
   openarm2: 'OpenArm 2.0 · 양팔 7자유도 · 팔 리치 606 mm, 팔당 5.5 kg (공식 문서) · 베이스 플레이트 19 × 25 cm, 팔을 내린 전체 폭 41 cm, 어깨 간격 30.5 cm (공식 URDF 모델 기준).',
-  xarm7: 'UFACTORY xArm 7 · 7자유도 · 리치 700 mm · 베이스 Ø126 mm · 본체 13.7 kg · 별도 컨트롤 박스가 필요합니다.',
+  xarm7: 'UFACTORY xArm 7 · 7자유도 · 가반하중 3.5 kg · 리치 700 mm · 베이스 Ø126 mm · 본체 13.7 kg · 별도 컨트롤 박스가 필요합니다.',
   so101: 'SO-101 · 베이스 약 11 × 9 cm (공개 CAD 기준) · 리치 약 44 cm (공개 URDF 링크 길이 합산, 그리퍼 끝 기준).',
 };
 const TOP_TYPES = new Set(['openarm2', 'xarm7', 'so101', 'arm', 'pc']); // 책상·테이블 위에 올릴 수 있는 것
@@ -1095,11 +1138,29 @@ async function initShared() {
 
 /* ───────── 3D model viewer (three.js is loaded only when a robot is first selected) ───────── */
 const CDN3 = 'https://cdn.jsdelivr.net/npm/three@0.147.0/';
+const deg = r => r * 180 / Math.PI;
+const J = (id, label, flip) => ({ id, label, s: flip ? -1 : 1 }); // s: 슬라이더 표시값과 관절각의 부호 관계
+const oaArm = (side, title) => {
+  const p = `openarm_${side}_`, L = side === 'left'; // 좌우가 같은 표시값이면 거울상 자세가 되도록 부호를 맞춤
+  return { title, items: [J(p + 'joint1', 'J1 · 어깨 앞뒤', L), J(p + 'joint2', 'J2 · 어깨 벌림', L), J(p + 'joint3', 'J3 · 상완 회전', !L), J(p + 'joint4', 'J4 · 팔꿈치'),
+    J(p + 'joint5', 'J5 · 전완 회전', !L), J(p + 'joint6', 'J6 · 손목 굽힘', !L), J(p + 'joint7', 'J7 · 손목 꺾기', !L), J(p + 'finger_joint1', '그리퍼', !L)] };
+};
 const MODELS = {
   openarm2: {
-    file: 'models/openarm2.glb', title: 'OpenArm 2.0',
-    specs: [['구성', '양팔 · 팔당 7자유도 + 그리퍼'], ['리치', '팔당 606 mm'], ['무게', '팔당 5.5 kg'], ['베이스 플레이트', '19 × 25 cm']],
+    file: 'models/openarm2.glb', title: 'OpenArm 2.0', maker: 'Enactic', tagline: '사람 팔 크기의 오픈소스 양팔 로봇. 원격 조작과 모방 학습 데이터 수집용.',
+    specs: [
+      ['자유도', '팔당 7 + 그리퍼 1 (양팔 16축)'],
+      ['가반하중', '정격 4.1 kg · 최대 6.0 kg (팔당, 엔드이펙터 포함)'],
+      ['리치', '606 mm'],
+      ['무게', '팔당 5.5 kg'],
+      ['구동기', 'Damiao DM-J8009P · DM4340 · DM-J4310 (24 V, CAN)'],
+      ['관절 최대 토크', 'J1–2 40 N·m · J3–4 27 N·m · J5–7 7 N·m'],
+      ['그리퍼', '핑거 교체형 · 손목 카메라 내장 (Arducam B0495, 1920×1200)'],
+      ['베이스', '19 × 25 cm 플레이트 (M6 탭) · 알루미늄 프레임 기둥'],
+    ],
+    links: [['공식 문서', 'https://docs.openarm.dev/']],
     src: ['enactic/openarm_description', 'https://github.com/enactic/openarm_description', 'Apache-2.0'],
+    joints: [oaArm('left', '왼팔'), oaArm('right', '오른팔')], mirror: ['openarm_left_', 'openarm_right_'],
     poses: [
       ['기본', {}],
       ['준비', { openarm_left_joint4: 1.57, openarm_right_joint4: 1.57 }],
@@ -1109,9 +1170,23 @@ const MODELS = {
     ],
   },
   xarm7: {
-    file: 'models/xarm7.glb', title: 'UFACTORY xArm7',
-    specs: [['구성', '7자유도 · 그리퍼 별도'], ['리치', '700 mm'], ['가반하중', '3.5 kg'], ['무게', '13.7 kg'], ['베이스', 'Ø126 mm'], ['기타', '별도 컨트롤 박스 필요']],
+    file: 'models/xarm7.glb', title: 'xArm7', maker: 'UFACTORY', tagline: '7자유도 협동 로봇팔. 가반하중 3.5 kg, 리치 700 mm.',
+    specs: [
+      ['자유도', '7'],
+      ['가반하중', '3.5 kg'],
+      ['리치', '700 mm'],
+      ['반복 정밀도', '±0.1 mm'],
+      ['최대 속도', 'TCP 1 m/s · 관절 180°/s'],
+      ['관절 범위', 'J1·3·5·7 ±360° · J2 −118~120° · J4 −11~225° · J6 −97~180°'],
+      ['무게', '본체 13.7 kg (제품 페이지 표기는 14.3 kg)'],
+      ['베이스', 'Ø126 mm'],
+      ['컨트롤 박스', 'AC형 269 × 178 × 86 mm · 3.4 kg (DC형 2.5 kg)'],
+      ['엔드 플랜지', 'ISO 9409'],
+      ['모델 구성', '그리퍼 없는 본체'],
+    ],
+    links: [['제품 페이지', 'https://www.ufactory.cc/xarm-collaborative-robot/']],
     src: ['xArm-Developer/xarm_ros2', 'https://github.com/xArm-Developer/xarm_ros2', 'BSD-3-Clause'],
+    joints: [{ title: '', items: [J('joint1', 'J1 · 베이스 회전'), J('joint2', 'J2 · 어깨'), J('joint3', 'J3 · 상완 회전'), J('joint4', 'J4 · 팔꿈치'), J('joint5', 'J5 · 전완 회전'), J('joint6', 'J6 · 손목 굽힘'), J('joint7', 'J7 · 손목 회전')] }],
     poses: [
       ['준비', { joint2: -0.35, joint4: 1.2, joint6: 1.55 }],
       ['영점', {}],
@@ -1120,9 +1195,22 @@ const MODELS = {
     ],
   },
   so101: {
-    file: 'models/so101.glb', title: 'SO-101',
-    specs: [['구성', '6자유도 (팔 5 + 그리퍼 1)'], ['구동', 'Feetech STS3215 서보 6개'], ['리치', '약 44 cm (URDF 기준)'], ['베이스', '약 11 × 9 cm'], ['생태계', 'Hugging Face LeRobot']],
+    file: 'models/so101.glb', title: 'SO-101', maker: 'TheRobotStudio · Hugging Face LeRobot', tagline: '3D 프린팅으로 만드는 저가형 오픈소스 6자유도 팔. 모방 학습 데이터 수집용.',
+    specs: [
+      ['자유도', '6 (팔 5 + 그리퍼 1)'],
+      ['구동기', 'Feetech STS3215 버스 서보 6개'],
+      ['기어비', '팔로워 전 관절 1/345 · 리더는 1/147·1/191·1/345 혼합'],
+      ['서보 토크', '7.4 V형 16.5 kg·cm (6 V 기준) · 12 V형 30 kg·cm'],
+      ['제어', '서보 직렬 연결 · Waveshare 제어 보드 · USB-C'],
+      ['리치', '약 44 cm (URDF 링크 길이 기준)'],
+      ['베이스', '약 11 × 9 cm'],
+      ['재질', 'PLA+ 3D 프린팅'],
+      ['소프트웨어', 'Hugging Face LeRobot'],
+      ['모델 구성', '팔로워 암'],
+    ],
+    links: [['조립 문서', 'https://huggingface.co/docs/lerobot/so101']],
     src: ['TheRobotStudio/SO-ARM100', 'https://github.com/TheRobotStudio/SO-ARM100', 'Apache-2.0'],
+    joints: [{ title: '', items: [J('shoulder_pan', '어깨 회전'), J('shoulder_lift', '어깨 들기'), J('elbow_flex', '팔꿈치'), J('wrist_flex', '손목 굽힘'), J('wrist_roll', '손목 회전'), J('gripper', '그리퍼')] }],
     poses: [
       ['준비', { shoulder_lift: -0.6, elbow_flex: 0.9, wrist_flex: 0.7 }],
       ['영점', {}],
@@ -1132,8 +1220,9 @@ const MODELS = {
     ],
   },
 };
-const mv = { shown: null, ready: null, failed: false, cache: new Map(), cur: null, q: {}, pose: 0, raf: 0, anim: 0 };
-const mvEl = { box: $('mv'), stage: $('mv-stage'), msg: $('mv-msg'), poses: $('mv-poses'), specs: $('mv-specs'), title: $('mv-title'), big: $('mv-big'), back: $('mv-backdrop') };
+const mv = { shown: null, ready: null, failed: false, cache: new Map(), cur: null, q: {}, sl: {}, raf: 0, anim: 0 };
+const mvEl = { box: $('mv'), stage: $('mv-stage'), msg: $('mv-msg'), poses: $('mv-poses'), joints: $('mv-joints'), specs: $('mv-specs'), links: $('mv-links'), title: $('mv-title'), tag: $('mv-tag'),
+  big: $('mv-big'), back: $('mv-backdrop'), mirror: $('mv-mirror'), mirrorWrap: $('mv-mirror-wrap'), reset: $('mv-reset') };
 const mvMsg = t => { mvEl.msg.textContent = t; mvEl.msg.hidden = !t; };
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 function loadScript(src) {
@@ -1188,11 +1277,16 @@ function mvApply(q) {
     if (j.prismatic) j.node.position.copy(j.axis).multiplyScalar(v); else j.node.quaternion.setFromAxisAngle(j.axis, v);
   }
   mv.q = q;
+  for (const [id, s] of Object.entries(mv.sl)) { // 슬라이더와 각도 표시를 현재 자세에 맞춤
+    const d = clamp(Math.round(deg(q[id] || 0) * s.it.s), +s.input.min, +s.input.max);
+    if (+s.input.value !== d) s.input.value = d;
+    s.out.textContent = d + '°';
+  }
 }
+const mvPoseMark = i => [...mvEl.poses.children].forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
 function mvPose(i, animate) {
   const def = MODELS[mv.shown], m = mv.cur; if (!def || !m) return;
-  mv.pose = i;
-  [...mvEl.poses.children].forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+  mvPoseMark(i);
   const from = mv.q, to = def.poses[i][1];
   cancelAnimationFrame(mv.anim);
   const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1205,6 +1299,39 @@ function mvPose(i, animate) {
     if (t < 1) mv.anim = requestAnimationFrame(step);
   };
   mv.anim = requestAnimationFrame(step);
+}
+function mvPartner(def, id) { // 좌우 대칭 상대 관절
+  if (!def.mirror) return null;
+  const [a, b] = def.mirror;
+  return id.startsWith(a) ? b + id.slice(a.length) : id.startsWith(b) ? a + id.slice(b.length) : null;
+}
+function mvSlide(it, d) {
+  const def = MODELS[mv.shown]; if (!def || !mv.cur) return;
+  cancelAnimationFrame(mv.anim);
+  const q = { ...mv.q }; q[it.id] = rad(d) * it.s;
+  if (mvEl.mirror.checked) { const o = mv.sl[mvPartner(def, it.id)]; if (o) q[o.it.id] = rad(d) * o.it.s; }
+  mvApply(q); mvPoseMark(-1); mvDraw();
+}
+function mvBuildJoints(def) {
+  const host = mvEl.joints; host.textContent = ''; mv.sl = {};
+  host.classList.toggle('two', def.joints.length > 1);
+  for (const grp of def.joints) {
+    const box = document.createElement('div'); box.className = 'mv-grp';
+    if (grp.title) { const h = document.createElement('h4'); h.textContent = grp.title; box.append(h); }
+    const rows = document.createElement('div'); rows.className = 'mv-rows';
+    for (const it of grp.items) {
+      const j = mv.cur.joints[it.id]; if (!j || j.lower == null || j.upper == null) continue;
+      const a = deg(j.lower) * it.s, b = deg(j.upper) * it.s;
+      const row = document.createElement('label'), nm = document.createElement('span'), out = document.createElement('output'), input = document.createElement('input');
+      row.className = 'jr'; nm.className = 'jl'; nm.textContent = it.label; out.className = 'jv';
+      input.type = 'range'; input.min = Math.round(Math.min(a, b)); input.max = Math.round(Math.max(a, b)); input.step = 1; input.value = 0;
+      input.title = `${input.min}° ~ ${input.max}°`;
+      input.addEventListener('input', () => mvSlide(it, +input.value));
+      row.append(nm, out, input); rows.append(row);
+      mv.sl[it.id] = { it, input, out };
+    }
+    box.append(rows); host.append(box);
+  }
 }
 function mvFrame() { // 모델 전체가 들어오도록 시점을 맞춤
   const T = window.THREE, m = mv.cur; if (!m) return;
@@ -1221,10 +1348,12 @@ function mvSpecs(def, size) {
   const dl = mvEl.specs; dl.textContent = '';
   const rows = def.specs.slice();
   if (size) rows.push(['모델 크기', `${fmt(size.z * 100)} × ${fmt(size.x * 100)} × ${fmt(size.y * 100)} cm (폭×깊이×높이, 영점 자세)`]);
+  const n = state.items.filter(o => o.type === mv.shown).length; rows.push(['배치도에 놓인 수', n + '대']);
   for (const [k, v] of rows) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); }
-  const dt = document.createElement('dt'), dd = document.createElement('dd'), a = document.createElement('a');
-  dt.textContent = '모델 출처'; a.href = def.src[1]; a.target = '_blank'; a.rel = 'noopener'; a.textContent = def.src[0];
-  dd.append(a, ` (${def.src[2]})`); dl.append(dt, dd);
+  const p = mvEl.links; p.textContent = '';
+  const link = (text, url) => { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = text; return a; };
+  for (const [text, url] of def.links) p.append(link(text, url), ' · ');
+  p.append('3D 모델 출처 ', link(def.src[0], def.src[1]), ` (${def.src[2]})`);
 }
 async function mvLoad(file) {
   // GLB 그대로 받거나, 바이너리를 올릴 수 없는 호스팅에서는 base64 텍스트 사본(.b64.txt)을 받음
@@ -1243,8 +1372,9 @@ async function mvShow(type) {
   const def = MODELS[type]; mv.shown = type;
   mvEl.box.hidden = !def;
   if (!def) { mvBig(false); return; }
-  mvEl.title.textContent = '3D 모델 · ' + def.title;
-  mvEl.poses.textContent = '';
+  mvEl.title.textContent = def.title; mvEl.tag.textContent = `${def.maker} · ${def.tagline}`;
+  mvEl.poses.textContent = ''; mvEl.joints.textContent = ''; mv.sl = {};
+  mvEl.mirrorWrap.hidden = !def.mirror;
   def.poses.forEach(([name], i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = name; b.setAttribute('aria-pressed', String(i === 0)); b.addEventListener('click', () => mvPose(i, true)); mvEl.poses.append(b); });
   mvSpecs(def, null);
   if (mv.failed) { mvMsg('이 브라우저에서는 3D 모델을 표시할 수 없습니다.'); return; }
@@ -1262,7 +1392,7 @@ async function mvShow(type) {
   cancelAnimationFrame(mv.anim);
   mv.cur = m; mv.scene.add(m.root); mv.q = {};
   mvApply({}); const size = mvFrame(); mvSpecs(def, size);
-  mvPose(0, false); mvMsg(''); mvResize();
+  mvBuildJoints(def); mvPose(0, false); mvMsg(''); mvResize();
 }
 function mvSync() {
   const it = selItem(), type = it && MODELS[it.type] ? it.type : null;
@@ -1275,6 +1405,13 @@ function mvBig(on) {
 }
 mvEl.big.addEventListener('click', () => mvBig(!mvEl.box.classList.contains('big')));
 mvEl.back.addEventListener('click', () => mvBig(false));
+mvEl.reset.addEventListener('click', () => mvPose(0, true));
+mvEl.mirror.addEventListener('change', () => { // 켜는 순간 왼팔 자세를 오른팔에 옮김
+  const def = MODELS[mv.shown]; if (!def || !def.mirror || !mvEl.mirror.checked || !mv.cur) return;
+  const q = { ...mv.q };
+  for (const s of Object.values(mv.sl)) if (s.it.id.startsWith(def.mirror[0])) { const o = mv.sl[mvPartner(def, s.it.id)]; if (o) q[o.it.id] = (q[s.it.id] || 0) * s.it.s * o.it.s; }
+  cancelAnimationFrame(mv.anim); mvApply(q); mvDraw();
+});
 mvEl.stage.addEventListener('dblclick', () => { if (mv.cur) { const q = mv.q; mvApply({}); mvFrame(); mvApply(q); mvDraw(); } });
 
 /* ───────── boot ───────── */
