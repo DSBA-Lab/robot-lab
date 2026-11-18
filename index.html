@@ -1,9 +1,11 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" type="image/png" sizes="64x64" href="assets/favicon.png"><link rel="icon" type="image/svg+xml" href="assets/favicon.svg"><style>body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
 <title>DSBA Robot Lab</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&display=swap">
 <style>
-/* Layout: an application shell, not a page of cards. Top bar, catalog rail left, the drawing in the middle, inspector right.
+/* Layout: an application shell, not a page of cards. Top bar, catalog rail left, the drawing next to it, robots on the right.
+   The drawing column is only as wide as the room needs at the current window height (the room is 347 × 848, so it is narrow);
+   everything left over goes to the robot side. When that side is wide enough it splits into a 3D viewport and a settings column.
    Regions are split by hairlines and the drawing is the only white surface. UI stays monochrome; blue means "selected / robot reach", red means "collision".
    The plan follows drafting conventions: solid cut walls, lighter object lines, lightest dimension lines with 45° ticks. Stacks to one column under 1080px. */
 :root{
@@ -20,7 +22,7 @@
   --zone-fill:rgba(28,31,38,.04); --zone-line:#8b919c;
   --reach-fill:rgba(44,95,201,.055); --reach-line:rgba(44,95,201,.5);
   --bad:#c93a3a; --bad-fill:rgba(201,58,58,.16); --ok:#2e7d4f;
-  --stage3d:#dde0e5; --stage-grid:#c2c7cf; --stage-axis:#9aa0ab;
+  --stage3d:#dde0e5; --stage3d-hi:#e7e9ed; --stage-grid:#c2c7cf; --stage-axis:#9aa0ab;
   --font-ui:"Inter","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --font-data:"Geist Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
@@ -39,7 +41,7 @@
     --zone-fill:rgba(231,233,237,.05); --zone-line:#727884;
     --reach-fill:rgba(126,166,244,.08); --reach-line:rgba(126,166,244,.6);
     --bad:#f07070; --bad-fill:rgba(240,112,112,.22); --ok:#62c48a;
-    --stage3d:#3b404a; --stage-grid:#565c68; --stage-axis:#7d8492;
+    --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492;
     color-scheme:dark;
   }
 }
@@ -57,7 +59,7 @@
   --zone-fill:rgba(231,233,237,.05); --zone-line:#727884;
   --reach-fill:rgba(126,166,244,.08); --reach-line:rgba(126,166,244,.6);
   --bad:#f07070; --bad-fill:rgba(240,112,112,.22); --ok:#62c48a;
-  --stage3d:#3b404a; --stage-grid:#565c68; --stage-axis:#7d8492;
+  --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492;
   color-scheme:dark;
 }
 
@@ -73,7 +75,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .bar{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;min-height:44px;padding-block:6px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   border-bottom:1px solid var(--line);background:var(--panel)}
-.bar h1{margin:0 auto 0 0;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.bar h1{display:flex;align-items:center;gap:8px;margin:0 auto 0 0;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.bar h1 img{flex:none;width:22px;height:22px;display:block}
 .tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 .tg{display:flex;align-items:center;gap:2px}
 .tg + .tg{padding-left:10px;border-left:1px solid var(--line)}
@@ -89,10 +92,15 @@ button,input,select,textarea{font:inherit;color:inherit}
 #t-zin,#t-zout{width:28px;justify-content:center;padding:0;font-size:16px;line-height:1}
 
 /* work area */
-.work{display:grid;grid-template-columns:236px minmax(0,1fr) clamp(380px,38vw,640px);min-height:0}
+/* Drawing column width = fitted room width at this window height + side margins.
+   Stage height is 100vh − 44 (bar) − 27 (status); the plan keeps 28 + 58 px above/below and 16 + 48 px left/right (VIEW_PAD in the script),
+   and room + walls is 371 × 872 cm, so width = (100vh − 71 − 86) × 371/872 + 64, plus 8 px of slack. */
+.work{display:grid;grid-template-columns:clamp(216px,15vw,236px) clamp(300px,calc((100vh - 157px) * .4255 + 72px),42vw) minmax(0,1fr);min-height:0}
+.work.big{grid-template-columns:minmax(0,1fr)}
+.work.big .rail,.work.big .sheet{display:none}
 .rail,.side{overflow-y:auto;min-height:0;min-width:0;background:var(--panel);scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
 .rail{border-right:1px solid var(--line)}
-.side{border-left:1px solid var(--line)}
+.side{border-left:1px solid var(--line);container:side / inline-size}
 .sec{padding:14px 16px 16px;border-bottom:1px solid var(--line)}
 .rail .sec{padding-left:max(16px,env(safe-area-inset-left,0px))}
 .side .sec{padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -159,15 +167,35 @@ details.sec[open] > summary{margin-bottom:10px}
 .olist .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .olist .dm{font-family:var(--font-data);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
-/* 3D model viewer */
-.mv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
-.mv-head h2{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
-.mv-tag{margin:2px 0 0;font-size:12px;color:var(--ink-2)}
-.mv-stage{position:relative;aspect-ratio:4/3;max-width:100%;border:1px solid var(--line);border-radius:4px;background:var(--stage3d);overflow:hidden}
+/* robot side: gallery of all robots, or the 3D viewport of one */
+.show{position:relative;border-bottom:1px solid var(--line);background:var(--stage3d)}
+.gal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line-2)}
+.gt{position:relative;display:block;min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:var(--stage3d);aspect-ratio:1/1;overflow:hidden;text-align:left;cursor:pointer}
+.gt:first-child{grid-column:1/-1;aspect-ratio:2/1}
+.gt:hover,.gt:focus-visible{background:var(--stage3d-hi)}
+.gt:focus-visible{outline-offset:-2px}
+.gt canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.gt-cap{position:absolute;left:max(12px,env(safe-area-inset-left,0px));right:44px;bottom:10px;display:grid;gap:1px;pointer-events:none}
+.gt-nm{font-size:13px;font-weight:600;letter-spacing:-.01em}
+.gt-mk{font-size:11px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gt-go,.vb{display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--line-2);border-radius:4px;background:var(--floor);color:var(--ink-2)}
+.gt-go{position:absolute;top:10px;right:max(10px,env(safe-area-inset-right,0px))}
+.gt-go svg,.vb svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.gt:hover .gt-go,.gt:focus-visible .gt-go{color:var(--floor);background:var(--accent);border-color:var(--accent)}
+.gt:active .gt-go{background:var(--accent-ink);border-color:var(--accent-ink)}
+.gt.loading::after{content:"";position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border:1.5px solid var(--line-2);border-top-color:var(--ink-2);border-radius:50%}
+.mv-view{position:relative}
+.mv-stage{position:relative;aspect-ratio:4/3;max-width:100%;overflow:hidden}
 .mv-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
 .mv-stage canvas:active{cursor:grabbing}
 .mv-msg{position:absolute;inset:0;display:grid;place-items:center;margin:0;padding:12px;text-align:center;font-size:12px;color:var(--ink-2);pointer-events:none}
-.mv-view .note{margin-top:6px;font-size:11px;color:var(--ink-3)}
+.vb{position:absolute;top:10px;padding:0;cursor:pointer}
+.vb:hover{color:var(--ink);border-color:var(--ink-3)}
+.vb:active{background:var(--paper)}
+#mv-back{left:max(10px,env(safe-area-inset-left,0px))}
+#mv-big{right:max(10px,env(safe-area-inset-right,0px))}
+.mv-head h2{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+.mv-tag{margin:2px 0 0;font-size:12px;color:var(--ink-2)}
 .mv-ctl{margin-top:14px}
 .mv-ctl h3{margin:16px 0 8px;color:var(--ink);font-weight:600}
 .mv-ctl .row{margin-top:0}
@@ -193,31 +221,26 @@ details.sec[open] > summary{margin-bottom:10px}
 .spec dt{color:var(--ink-2);padding-right:16px}
 .spec dd{overflow-wrap:anywhere}
 .mv a{color:var(--accent-ink);text-underline-offset:2px}
-.mv.big{position:fixed;z-index:15;inset:max(16px,4vh) max(16px,4vw);display:flex;flex-direction:column;padding:16px;background:var(--panel);
-  border:1px solid var(--line-2);border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.18)}
-.mv.big .mv-main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,440px);gap:20px}
-.mv.big .mv-view{display:flex;flex-direction:column;min-height:0}
-.mv.big .mv-stage{flex:1 1 auto;aspect-ratio:auto;min-height:220px}
-.mv.big .mv-ctl{margin-top:0;overflow-y:auto;min-height:0;padding-right:4px;scrollbar-width:thin}
-.mv-backdrop{position:fixed;inset:0;z-index:14;background:rgba(10,12,16,.45)}
-@media (max-width:760px){
-  .mv.big{overflow-y:auto}
-  .mv.big .mv-main{display:block}
-  .mv.big .mv-stage{aspect-ratio:4/3}
-  .mv.big .mv-ctl{margin-top:14px;overflow:visible}
+/* wide robot side: viewport on the left, settings column on the right */
+@container side (min-width:720px){
+  .side-in{display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,34cqw,420px);align-items:start}
+  .show{position:sticky;top:0;border-bottom:0}
+  .col{border-left:1px solid var(--line)}
 }
 
 /* drawing sheet */
-.sheet{display:grid;grid-template-rows:minmax(0,1fr) auto;background:var(--sheet);overflow:hidden;min-width:0;min-height:0;position:relative}
+.sheet{display:grid;grid-template-rows:minmax(0,1fr) auto;background:var(--sheet);overflow:hidden;min-width:0;min-height:0;position:relative;container:sheet / inline-size}
 #stage{position:relative;min-height:0;min-width:0;overflow:hidden}
 #plan{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;cursor:default}
 #plan.measuring{cursor:crosshair}
 #plan.panning{cursor:grabbing}
-.status{display:flex;flex-wrap:wrap;gap:2px 18px;padding-block:5px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+.status{display:flex;gap:16px;overflow:hidden;white-space:nowrap;padding-block:5px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   border-top:1px solid var(--line);background:var(--panel);font-family:var(--font-data);font-size:11px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .status b{font-weight:500;color:var(--ink)}
 .status .warn{color:var(--bad)}
 .status .cur{margin-left:auto}
+@container sheet (max-width:560px){.status .leg{display:none}}
+@container sheet (max-width:400px){.status .cur{display:none}}
 .toast{position:absolute;left:50%;bottom:40px;transform:translateX(-50%);max-width:calc(100% - 32px);background:var(--ink);color:var(--floor);
   border-radius:4px;padding:6px 12px;font-size:12px;pointer-events:none}
 
@@ -264,6 +287,17 @@ details.sec[open] > summary{margin-bottom:10px}
 .meas circle{fill:var(--ink);pointer-events:none}
 .meas text{fill:var(--ink);font-family:var(--font-data)!important;font-weight:500;paint-order:stroke;stroke:var(--floor);stroke-linejoin:round;pointer-events:none}
 
+/* three-column desktop: the robot side has a definite height, so the viewport can fill it */
+@media (min-width:1081px){
+  .side{container-type:size}
+  @container side (min-width:720px){
+    .show{height:100cqh}
+    .gal,.mv-view,.mv-stage{height:100%}
+    .gal{grid-template-rows:repeat(2,minmax(0,1fr))}
+    .gt,.gt:first-child,.mv-stage{aspect-ratio:auto}
+    .col{min-height:100cqh}
+  }
+}
 @media (max-width:1080px){
   html,body{height:auto}
   .app{height:auto;display:block}
@@ -275,13 +309,15 @@ details.sec[open] > summary{margin-bottom:10px}
   .cat{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
 }
 @media (prefers-reduced-motion:no-preference){
-  .btn,.cat button,.olist button,.tg button{transition:background-color .1s,border-color .1s}
+  .btn,.cat button,.olist button,.tg button,.gt,.gt-go,.vb{transition:background-color .1s,border-color .1s,color .1s}
+  .gt.loading::after{animation:spin .9s linear infinite}
 }
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
 <div class="app">
   <header class="bar">
-    <h1>DSBA Robot Lab</h1>
+    <h1><img src="assets/dsba_logo_imageonly.png" alt="" width="22" height="22">DSBA Robot Lab</h1>
     <div class="tools" role="toolbar" aria-label="도구">
       <div class="tg">
         <button type="button" id="t-undo" title="되돌리기 (Ctrl+Z)">되돌리기</button>
@@ -310,7 +346,7 @@ details.sec[open] > summary{margin-bottom:10px}
     </div>
   </header>
 
-  <main class="work">
+  <main class="work" id="work">
     <aside class="rail">
       <section class="sec">
         <h2>물체 추가</h2>
@@ -342,34 +378,35 @@ details.sec[open] > summary{margin-bottom:10px}
     </section>
 
     <aside class="side">
-      <section class="sec mv" id="mv" hidden>
-        <div class="mv-head">
-          <div><h2 id="mv-title">3D 모델</h2><p class="mv-tag" id="mv-tag"></p></div>
-          <button type="button" class="btn sm" id="mv-big" aria-pressed="false">크게 보기</button>
-        </div>
-        <div class="mv-main">
-          <div class="mv-view">
+      <div class="side-in">
+        <div class="show">
+          <div class="gal" id="gal"></div>
+          <div class="mv-view" id="mv-view" hidden>
             <div class="mv-stage" id="mv-stage"><p class="mv-msg" id="mv-msg"></p></div>
-            <p class="note">드래그 회전 · 휠 확대 · 우클릭 이동 · 더블클릭 시점 초기화 · 격자 10 cm</p>
+            <button type="button" class="vb" id="mv-back" aria-label="로봇 전체 보기" title="로봇 전체 보기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+            <button type="button" class="vb" id="mv-big" aria-pressed="false" aria-label="크게 보기" title="크게 보기"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="mv-big-ico" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
           </div>
-          <div class="mv-ctl">
-            <h3>자세</h3>
-            <div class="row" id="mv-poses"></div>
-            <div class="mv-jhead">
-              <h3>관절</h3>
-              <label class="chk" id="mv-mirror-wrap" hidden><input type="checkbox" id="mv-mirror" checked> 좌우 대칭</label>
-              <button type="button" class="btn sm" id="mv-reset">초기화</button>
-            </div>
-            <div id="mv-joints"></div>
-            <h3>사양</h3>
-            <dl class="spec" id="mv-specs"></dl>
-            <p class="note" id="mv-links"></p>
+        </div>
+        <div class="col">
+      <section class="sec mv" id="mv" hidden>
+        <div class="mv-head"><h2 id="mv-title">3D 모델</h2><p class="mv-tag" id="mv-tag"></p></div>
+        <div class="mv-ctl">
+          <h3>자세</h3>
+          <div class="row" id="mv-poses"></div>
+          <div class="mv-jhead">
+            <h3>관절</h3>
+            <label class="chk" id="mv-mirror-wrap" hidden><input type="checkbox" id="mv-mirror" checked> 좌우 대칭</label>
+            <button type="button" class="btn sm" id="mv-reset">초기화</button>
           </div>
+          <div id="mv-joints"></div>
+          <h3>사양</h3>
+          <dl class="spec" id="mv-specs"></dl>
+          <p class="note" id="mv-links"></p>
         </div>
       </section>
       <section class="sec" id="insp">
         <h2>선택한 물체</h2>
-        <p class="note" id="insp-empty" style="margin-top:0">도면에서 물체를 선택하면 치수와 위치, 벽까지의 거리가 표시됩니다. 로봇팔은 3D 모델과 사양도 함께 나옵니다.</p>
+        <p class="note" id="insp-empty" style="margin-top:0">도면에서 물체를 선택하면 치수와 위치, 벽까지의 거리가 표시됩니다.</p>
         <div id="insp-body" hidden>
           <label class="fld wide"><span>이름</span><input id="f-name" type="text" maxlength="40"></label>
           <div class="grid2">
@@ -395,11 +432,11 @@ details.sec[open] > summary{margin-bottom:10px}
         <h2>배치된 물체</h2>
         <ul class="olist" id="olist"></ul>
       </section>
+        </div>
+      </div>
     </aside>
   </main>
 </div>
-
-<div class="mv-backdrop" id="mv-backdrop" hidden></div>
 
 <script>
 (() => {
@@ -595,24 +632,22 @@ function redo() { if (hi < hist.length - 1) { hi++; restore(hist[hi]); saveLocal
 
 /* ───────── view ───────── */
 const MAX_SCALE = 8;
-const viewMargin = () => (stage.clientWidth || 600) < 520 ? 52 : 66; // 치수선이 들어갈 여백 (px)
+const VIEW_PAD = { l: 16, r: 48, t: 28, b: 58 }; // 도면 둘레 여백 (px): 위 창문 표시, 오른쪽·아래 치수선. .work의 도면 열 폭 계산식과 맞춰 둠
 function fitScale() {
-  const cw = stage.clientWidth || 600, ch = stage.clientHeight || 600, m = viewMargin(), R = state.room;
-  return Math.max(0.05, Math.min((cw - 2 * m) / (R.w + 2 * WALL_T), (ch - 2 * m) / (R.d + 2 * WALL_T)));
+  const cw = stage.clientWidth || 600, ch = stage.clientHeight || 600, P = VIEW_PAD, R = state.room;
+  return Math.max(0.05, Math.min((cw - P.l - P.r) / (R.w + 2 * WALL_T), (ch - P.t - P.b) / (R.d + 2 * WALL_T)));
 }
 const clampScale = s => clamp(s, fitScale() * 0.5, MAX_SCALE);
-function panRoom() { // 도면(방 + 벽 + 치수 여백)이 화면보다 큰 만큼만 움직일 수 있음
-  const cw = stage.clientWidth || 600, ch = stage.clientHeight || 600, m = viewMargin(), R = state.room, s = view.scale;
-  return { x: Math.max(0, R.w / 2 + WALL_T + m / s - cw / 2 / s), y: Math.max(0, R.d / 2 + WALL_T + m / s - ch / 2 / s) };
+function viewRange() { // 화면 중심이 움직일 수 있는 범위. 도면(방 + 벽 + 여백)이 화면보다 작은 축은 가운데 한 점
+  const cw = stage.clientWidth || 600, ch = stage.clientHeight || 600, P = VIEW_PAD, R = state.room, s = view.scale;
+  const ax = (a, b, half) => b - a <= 2 * half + 1e-6 ? [(a + b) / 2, (a + b) / 2] : [a + half, b - half];
+  return { x: ax(-WALL_T - P.l / s, R.w + WALL_T + P.r / s, cw / 2 / s), y: ax(-WALL_T - P.t / s, R.d + WALL_T + P.b / s, ch / 2 / s) };
 }
-function clampView() { // 화면보다 작으면 가운데 고정
-  const R = state.room, p = panRoom();
-  view.cx = clamp(view.cx, R.w / 2 - p.x, R.w / 2 + p.x); view.cy = clamp(view.cy, R.d / 2 - p.y, R.d / 2 + p.y);
+function clampView() {
+  const v = viewRange();
+  view.cx = clamp(view.cx, v.x[0], v.x[1]); view.cy = clamp(view.cy, v.y[0], v.y[1]);
 }
-function fit() {
-  const R = state.room;
-  view.scale = fitScale(); view.cx = R.w / 2; view.cy = R.d / 2; view.fitted = true;
-}
+function fit() { view.scale = fitScale(); view.fitted = true; clampView(); }
 function toWorld(cx, cy) {
   const r = svg.getBoundingClientRect();
   return { x: view.cx + (cx - r.left - r.width / 2) / view.scale, y: view.cy + (cy - r.top - r.height / 2) / view.scale };
@@ -771,7 +806,7 @@ function renderStatus() {
     `<span>방 <b>${(R.w / 100).toFixed(2)} × ${(R.d / 100).toFixed(2)} m</b> · <b>${(R.w * R.d / 10000).toFixed(1)} m²</b></span>` +
     `<span>물체 <b>${state.items.length}</b></span>` +
     (bad ? `<span class="warn">겹침·이탈 ${bad}</span>` : `<span>겹침 없음</span>`) +
-    `<span>격자 10 cm / 1 m</span><span class="cur" id="cur">${cursorTxt}</span>`;
+    `<span class="leg">격자 10 cm / 1 m</span><span class="cur" id="cur">${cursorTxt}</span>`;
 }
 let listSig = '';
 function renderList() {
@@ -909,7 +944,7 @@ svg.addEventListener('pointermove', e => {
     const dx = e.clientX - action.sx, dy = e.clientY - action.sy;
     if (!action.moved && Math.hypot(dx, dy) < 4) return;
     action.moved = true;
-    const p = panRoom(); if (!p.x && !p.y) return; // 도면이 화면 안에 다 들어오면 이동하지 않음
+    const v = viewRange(); if (v.x[0] === v.x[1] && v.y[0] === v.y[1]) return; // 도면이 화면 안에 다 들어오면 이동하지 않음
     view.cx = action.cx - dx / view.scale; view.cy = action.cy - dy / view.scale; view.fitted = false; clampView(); svg.classList.add('panning');
   } else if (action.type === 'measure') { ui.m.b = snapPt(w); }
   else return;
@@ -941,7 +976,7 @@ document.addEventListener('keydown', e => {
   if (k === 'delete' || k === 'backspace') { if (selItem()) { e.preventDefault(); deleteSel(); } }
   else if (k === 'r') rotateSel(e.shiftKey ? 15 : 90);
   else if (k === 'm') toggleMeasure();
-  else if (k === 'escape') { if (mvEl.box.classList.contains('big')) mvBig(false); else if (ui.measure) toggleMeasure(); else { ui.sel = null; schedule(); } }
+  else if (k === 'escape') { if (mvEl.work.classList.contains('big')) mvBig(false); else if (ui.measure) toggleMeasure(); else { if (ui.sel) ui.sel = null; else mv.preview = null; schedule(); } }
   else if (k.startsWith('arrow') && selItem()) {
     e.preventDefault(); const st = e.shiftKey ? 10 : 1;
     nudge(k === 'arrowleft' ? -st : k === 'arrowright' ? st : 0, k === 'arrowup' ? -st : k === 'arrowdown' ? st : 0);
@@ -1046,7 +1081,7 @@ async function initShared() {
   }, () => { shared.dead = true; });
 }
 
-/* ───────── 3D model viewer (three.js is loaded only when a robot is first selected) ───────── */
+/* ───────── 3D model viewer ───────── */
 const CDN3 = 'https://cdn.jsdelivr.net/npm/three@0.147.0/';
 const deg = r => r * 180 / Math.PI;
 const J = (id, label, flip) => ({ id, label, s: flip ? -1 : 1 }); // s: 슬라이더 표시값과 관절각의 부호 관계
@@ -1130,19 +1165,41 @@ const MODELS = {
     ],
   },
 };
-const mv = { shown: null, ready: null, failed: false, cache: new Map(), cur: null, q: {}, sl: {}, raf: 0, anim: 0 };
-const mvEl = { box: $('mv'), stage: $('mv-stage'), msg: $('mv-msg'), poses: $('mv-poses'), joints: $('mv-joints'), specs: $('mv-specs'), links: $('mv-links'), title: $('mv-title'), tag: $('mv-tag'),
-  big: $('mv-big'), back: $('mv-backdrop'), mirror: $('mv-mirror'), mirrorWrap: $('mv-mirror-wrap'), reset: $('mv-reset') };
+const mv = { shown: null, preview: null, ready: null, failed: false, cache: new Map(), cur: null, q: {}, sl: {}, fit: null, raf: 0, anim: 0 };
+const mvEl = { box: $('mv'), view: $('mv-view'), gal: $('gal'), stage: $('mv-stage'), msg: $('mv-msg'), poses: $('mv-poses'), joints: $('mv-joints'), specs: $('mv-specs'), links: $('mv-links'), title: $('mv-title'), tag: $('mv-tag'),
+  work: $('work'), big: $('mv-big'), bigIco: $('mv-big-ico'), back: $('mv-back'), mirror: $('mv-mirror'), mirrorWrap: $('mv-mirror-wrap'), reset: $('mv-reset') };
 const mvMsg = t => { mvEl.msg.textContent = t; mvEl.msg.hidden = !t; };
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const stillMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 function loadScript(src) {
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('script')); document.head.append(s); });
 }
-function mvDraw() { if (mv.raf || !mv.renderer) return; mv.raf = requestAnimationFrame(() => { mv.raf = 0; mv.renderer.render(mv.scene, mv.camera); }); }
+function mvDraw() { if (mv.raf || !mv.renderer || !mv.cur) return; mv.raf = requestAnimationFrame(() => { mv.raf = 0; if (mv.cur) mv.renderer.render(mv.scene, mv.camera); }); }
+
+/* camera: one fixed viewing direction; the distance is whatever keeps the model in frame for the current aspect ratio */
+const VIEW_DIR = [1.15, 0.62, 1.25], VIEW_FOV = 30, VIEW_ROOM = 1.3; // VIEW_ROOM: 자세를 바꿔도 잘리지 않게 두는 여유
+function mvFitDist(size, aspect) { // 수직축으로 돌려도 화면 안에 들어오는 거리
+  const rh = Math.hypot(size.x, size.z) / 2, el = Math.asin(VIEW_DIR[1] / Math.hypot(...VIEW_DIR)), tv = Math.tan(rad(VIEW_FOV / 2));
+  return Math.max((size.y / 2 * Math.cos(el) + rh * Math.sin(el)) / tv, rh / (tv * aspect)) + rh;
+}
+function mvAim(c, dist, yaw) {
+  const T = window.THREE, d = new T.Vector3(...VIEW_DIR).normalize().applyAxisAngle(new T.Vector3(0, 1, 0), yaw || 0);
+  mv.camera.position.copy(c).addScaledVector(d, dist);
+  mv.camera.near = dist / 100; mv.camera.far = dist * 20; mv.camera.updateProjectionMatrix();
+}
 function mvResize() {
-  if (!mv.renderer) return;
+  if (!mv.renderer || !mv.cur) return;
   const w = mvEl.stage.clientWidth, h = mvEl.stage.clientHeight; if (!w || !h) return;
-  mv.renderer.setSize(w, h, false); mv.camera.aspect = w / h; mv.camera.updateProjectionMatrix(); mvDraw();
+  mv.renderer.setSize(w, h, false); mv.sized = true; mv.camera.aspect = w / h; mv.camera.updateProjectionMatrix();
+  if (mv.fit && Math.abs(mv.fit.aspect - w / h) > 0.01) { // 창 비율이 바뀌면 보던 방향은 두고 거리만 맞춤
+    const k = mvFitDist(mv.fit.size, w / h) / mvFitDist(mv.fit.size, mv.fit.aspect), t = mv.controls.target;
+    mv.camera.position.sub(t).multiplyScalar(k).add(t); mv.fit.aspect = w / h; mvLimits(); mv.controls.update();
+  }
+  mvDraw();
+}
+function mvLimits() {
+  const d = mvFitDist(mv.fit.size, mv.fit.aspect) * VIEW_ROOM;
+  mv.controls.minDistance = d * 0.1; mv.controls.maxDistance = d * 4;
 }
 function mvGrid() {
   const T = window.THREE; if (mv.grid) mv.scene.remove(mv.grid);
@@ -1158,17 +1215,18 @@ function mvInit() {
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.outputEncoding = T.sRGBEncoding;
     mvEl.stage.append(renderer.domElement);
     renderer.domElement.setAttribute('role', 'img'); renderer.domElement.setAttribute('aria-label', '선택한 로봇의 3D 모델');
-    mv.renderer = renderer; mv.scene = new T.Scene(); mv.camera = new T.PerspectiveCamera(30, 1, 0.01, 60);
+    mv.renderer = renderer; mv.scene = new T.Scene(); mv.camera = new T.PerspectiveCamera(VIEW_FOV, 1, 0.01, 60);
     mv.scene.add(new T.HemisphereLight(0xffffff, 0x7a8798, 0.6));
     const key = new T.DirectionalLight(0xffffff, 0.5); key.position.set(0.6, 1.2, 1.5); mv.camera.add(key); // 보는 방향에서 비추는 조명
     mv.scene.add(mv.camera);
     mv.controls = new T.OrbitControls(mv.camera, renderer.domElement);
     mv.controls.addEventListener('change', mvDraw);
     mvGrid();
-    if (window.matchMedia) { const mq = window.matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', () => { mvGrid(); mvDraw(); }); }
+    const retheme = () => { mvGrid(); mvDraw(); };
+    if (window.matchMedia) { const mq = window.matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', retheme); }
+    new MutationObserver(retheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     if ('ResizeObserver' in window) new ResizeObserver(mvResize).observe(mvEl.stage);
-    mvResize();
-  })();
+  })().catch(e => { mv.failed = true; throw e; });
   return mv.ready;
 }
 function mvPrep(root) { // 관절 노드 수집: 변환 스크립트가 축과 한계를 extras에 넣어 둠
@@ -1179,14 +1237,21 @@ function mvPrep(root) { // 관절 노드 수집: 변환 스크립트가 축과 �
   });
   return { root, joints };
 }
-function mvApply(q) {
-  const m = mv.cur; if (!m) return;
+function mvSet(m, q) { // 모델 m의 관절을 자세 q로
   for (const [name, j] of Object.entries(m.joints)) {
     let v = j.mimic ? (q[j.mimic.joint] || 0) * j.mimic.multiplier + j.mimic.offset : (q[name] || 0);
     if (j.lower != null && j.upper != null) v = clamp(v, j.lower, j.upper);
     if (j.prismatic) j.node.position.copy(j.axis).multiplyScalar(v); else j.node.quaternion.setFromAxisAngle(j.axis, v);
   }
-  mv.q = q;
+}
+function mvBox(m) {
+  const T = window.THREE; m.root.updateMatrixWorld(true);
+  const box = new T.Box3().setFromObject(m.root);
+  return { c: box.getCenter(new T.Vector3()), size: box.getSize(new T.Vector3()) };
+}
+function mvApply(q) {
+  const m = mv.cur; if (!m) return;
+  mvSet(m, q); mv.q = q;
   for (const [id, s] of Object.entries(mv.sl)) { // 슬라이더와 각도 표시를 현재 자세에 맞춤
     const d = clamp(Math.round(deg(q[id] || 0) * s.it.s), +s.input.min, +s.input.max);
     if (+s.input.value !== d) s.input.value = d;
@@ -1201,10 +1266,10 @@ function mvPose(i, animate) {
   mvPoseMark(i);
   const from = mv.q, to = def.poses[i][1];
   cancelAnimationFrame(mv.anim);
-  const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!animate || still) { mvApply({ ...to }); mvDraw(); return; }
+  if (!animate || stillMotion()) { mvApply({ ...to }); mvDraw(); return; }
   const names = Object.keys(m.joints), t0 = performance.now(), D = 520;
   const step = now => {
+    if (mv.cur !== m) return;
     const t = Math.min(1, (now - t0) / D), e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2, q = {};
     for (const n of names) q[n] = (from[n] || 0) + ((to[n] || 0) - (from[n] || 0)) * e;
     mvApply(q); mv.renderer.render(mv.scene, mv.camera);
@@ -1246,14 +1311,11 @@ function mvBuildJoints(def) {
   }
 }
 function mvFrame() { // 모델 전체가 들어오도록 시점을 맞춤
-  const T = window.THREE, m = mv.cur; if (!m) return;
-  m.root.updateMatrixWorld(true);
-  const box = new T.Box3().setFromObject(m.root), c = box.getCenter(new T.Vector3()), size = box.getSize(new T.Vector3());
-  const r = Math.max(size.length() / 2, 0.05), dist = r / Math.sin(rad(mv.camera.fov / 2)) * 1.08;
-  mv.controls.target.copy(c);
-  mv.camera.position.copy(c).add(new T.Vector3(1.15, 0.62, 1.25).normalize().multiplyScalar(dist));
-  mv.camera.near = dist / 100; mv.camera.far = dist * 20; mv.camera.updateProjectionMatrix();
-  mv.controls.minDistance = r * 0.4; mv.controls.maxDistance = dist * 4; mv.controls.update();
+  const m = mv.cur; if (!m) return;
+  const { c, size } = mvBox(m);
+  mv.fit = { size, aspect: mv.camera.aspect };
+  mv.controls.target.copy(c); mvAim(c, mvFitDist(size, mv.camera.aspect) * VIEW_ROOM, 0);
+  mvLimits(); mv.controls.update();
   return size;
 }
 function mvSpecs(def, size) {
@@ -1280,43 +1342,55 @@ async function mvLoad(file) {
   let buf; try { buf = await order[0](); } catch (e) { buf = await order[1](); }
   return (await new Promise((res, rej) => new window.THREE.GLTFLoader().parse(buf, '', res, rej))).scene;
 }
+function mvModel(type) { // 모델은 한 번만 받아 둠. 실패하면 다음에 다시 시도
+  if (!mv.cache.has(type)) {
+    const p = mvInit().then(() => mvLoad(MODELS[type].file)).then(mvPrep);
+    p.catch(() => mv.cache.delete(type));
+    mv.cache.set(type, p);
+  }
+  return mv.cache.get(type);
+}
 async function mvShow(type) {
   const def = MODELS[type]; mv.shown = type;
-  mvEl.box.hidden = !def;
-  if (!def) { mvBig(false); return; }
+  cancelAnimationFrame(mv.anim);
+  if (mv.cur) { mv.scene.remove(mv.cur.root); mv.cur = null; }
+  mvEl.box.hidden = mvEl.view.hidden = !def; mvEl.gal.hidden = !!def;
+  if (!def) { mvBig(false); galDrawAll(); return; }
   mvEl.title.textContent = def.title; mvEl.tag.textContent = `${def.maker} · ${def.tagline}`;
   mvEl.poses.textContent = ''; mvEl.joints.textContent = ''; mv.sl = {};
   mvEl.mirrorWrap.hidden = !def.mirror;
   def.poses.forEach(([name], i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = name; b.setAttribute('aria-pressed', String(i === 0)); b.addEventListener('click', () => mvPose(i, true)); mvEl.poses.append(b); });
   mvSpecs(def, null);
-  if (mv.failed) { mvMsg('이 브라우저에서는 3D 모델을 표시할 수 없습니다.'); return; }
-  if (mv.cur) { mv.scene.remove(mv.cur.root); mv.cur = null; mvDraw(); }
+  const noGl = '이 브라우저에서는 3D 모델을 표시할 수 없습니다.';
+  if (mv.failed) { mvMsg(noGl); return; }
   mvMsg('모델을 불러오는 중…');
-  try { await mvInit(); } catch (e) { console.warn('3D viewer:', e); mv.failed = true; mvMsg('이 브라우저에서는 3D 모델을 표시할 수 없습니다.'); return; }
+  try { await mvInit(); } catch (e) { console.warn('3D viewer:', e); if (mv.shown === type) mvMsg(noGl); return; }
+  if (mv.renderer.domElement.style) mv.renderer.domElement.style.visibility = 'hidden'; // 갤러리용으로 그린 그림이 잠깐 비치지 않게
+  let m;
+  try { m = await mvModel(type); }
+  catch (e) { console.warn('3D model:', e); if (mv.shown === type) mvMsg('모델 파일을 불러오지 못했습니다. 네트워크 연결을 확인해 주세요.'); return; }
   if (mv.shown !== type) return;
-  let m = mv.cache.get(type);
-  if (!m) {
-    try { m = mvPrep(await mvLoad(def.file)); }
-    catch (e) { console.warn('3D model:', e); if (mv.shown === type) mvMsg('모델 파일을 불러오지 못했습니다. 네트워크 연결을 확인해 주세요.'); return; }
-    mv.cache.set(type, m);
-  }
-  if (mv.shown !== type) return;
-  cancelAnimationFrame(mv.anim);
-  mv.cur = m; mv.scene.add(m.root); mv.q = {};
+  mv.cur = m; mv.scene.add(m.root); mv.grid.visible = true; mv.q = {}; mv.fit = null;
+  mvResize();
   mvApply({}); const size = mvFrame(); mvSpecs(def, size);
-  mvBuildJoints(def); mvPose(0, false); mvMsg(''); mvResize();
+  mvBuildJoints(def); mvPose(0, false); mvMsg('');
+  mv.renderer.render(mv.scene, mv.camera); mv.renderer.domElement.style.visibility = '';
 }
 function mvSync() {
-  const it = selItem(), type = it && MODELS[it.type] ? it.type : null;
+  const it = selItem(), picked = it && MODELS[it.type] ? it.type : null;
+  if (picked) mv.preview = null; // 도면에서 고른 로봇이 우선. 갤러리에서 연 모델은 닫을 때까지 유지
+  const type = picked || mv.preview;
   if (type !== mv.shown) mvShow(type);
 }
 function mvBig(on) {
-  mvEl.box.classList.toggle('big', on); mvEl.back.hidden = !on;
-  mvEl.big.setAttribute('aria-pressed', String(on)); mvEl.big.textContent = on ? '닫기' : '크게 보기';
-  mvResize();
+  if (mvEl.work.classList.contains('big') === on) return;
+  mvEl.work.classList.toggle('big', on);
+  mvEl.big.setAttribute('aria-pressed', String(on)); mvEl.big.title = on ? '원래 크기로' : '크게 보기'; mvEl.big.setAttribute('aria-label', mvEl.big.title);
+  mvEl.bigIco.setAttribute('d', on ? 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5' : 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5');
+  mvResize(); schedule();
 }
-mvEl.big.addEventListener('click', () => mvBig(!mvEl.box.classList.contains('big')));
-mvEl.back.addEventListener('click', () => mvBig(false));
+mvEl.big.addEventListener('click', () => mvBig(!mvEl.work.classList.contains('big')));
+mvEl.back.addEventListener('click', () => { mv.preview = null; const it = selItem(); if (it && MODELS[it.type]) ui.sel = null; mvSync(); schedule(); });
 mvEl.reset.addEventListener('click', () => mvPose(0, true));
 mvEl.mirror.addEventListener('change', () => { // 켜는 순간 왼팔 자세를 오른팔에 옮김
   const def = MODELS[mv.shown]; if (!def || !def.mirror || !mvEl.mirror.checked || !mv.cur) return;
@@ -1326,12 +1400,75 @@ mvEl.mirror.addEventListener('change', () => { // 켜는 순간 왼팔 자세를
 });
 mvEl.stage.addEventListener('dblclick', () => { if (mv.cur) { const q = mv.q; mvApply({}); mvFrame(); mvApply(q); mvDraw(); } });
 
+/* ───────── robot gallery (shown while no robot is open) ─────────
+   Every tile is a live render of the model: the one WebGL renderer draws each robot at tile size and the frame is copied
+   onto the tile's own canvas. A tile turns its robot while pointed at, which together with the corner mark is the cue that it opens. */
+const gal = { tiles: {}, raf: 0, last: 0, w: 0, h: 0 };
+for (const [type, def] of Object.entries(MODELS)) {
+  const b = document.createElement('button'), cv = document.createElement('canvas'), cap = document.createElement('span'), nm = document.createElement('span'), mk = document.createElement('span'), go = document.createElement('span');
+  b.type = 'button'; b.className = 'gt loading'; b.setAttribute('aria-label', `${def.title} 3D 모델 열기`);
+  cap.className = 'gt-cap'; nm.className = 'gt-nm'; nm.textContent = def.title; mk.className = 'gt-mk'; mk.textContent = def.maker; cap.append(nm, mk);
+  go.className = 'gt-go'; go.setAttribute('aria-hidden', 'true'); go.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 16l8-8M9.5 8H16v6.5"/></svg>';
+  b.append(cv, cap, go);
+  const t = gal.tiles[type] = { el: b, cv, m: null, box: null, yaw: 0, spin: false };
+  const spin = on => { t.spin = on; galTick(); };
+  b.addEventListener('pointerenter', e => { if (e.pointerType !== 'touch') spin(true); });
+  b.addEventListener('pointerleave', () => spin(false));
+  b.addEventListener('focus', () => spin(true));
+  b.addEventListener('blur', () => spin(false));
+  b.addEventListener('click', () => { t.spin = false; mv.preview = type; mvSync(); });
+  mvEl.gal.append(b);
+}
+function galDraw(type) {
+  const t = gal.tiles[type], m = t.m; if (!m || mv.shown || !mv.renderer) return;
+  const w = t.cv.clientWidth, h = t.cv.clientHeight; if (!w || !h) return;
+  const r = mv.renderer, cam = mv.camera, el = r.domElement;
+  if (gal.w !== w || gal.h !== h || mv.sized) { r.setSize(w, h, false); gal.w = w; gal.h = h; mv.sized = false; } // 크기가 바뀔 때만 버퍼를 다시 잡음
+  cam.aspect = w / h;
+  mvSet(m, MODELS[type].poses[0][1]);
+  if (!t.box) t.box = mvBox(m);
+  const dist = mvFitDist(t.box.size, cam.aspect) * 1.16, look = t.box.c.clone(); look.y -= dist * 0.035; // 이름표 자리만큼 살짝 위로
+  mvAim(look, dist, t.yaw); cam.lookAt(look);
+  mv.grid.visible = false; mv.scene.add(m.root);
+  r.render(mv.scene, cam);
+  mv.scene.remove(m.root);
+  if (t.cv.width !== el.width || t.cv.height !== el.height) { t.cv.width = el.width; t.cv.height = el.height; }
+  const g = t.cv.getContext('2d'); g.clearRect(0, 0, t.cv.width, t.cv.height); g.drawImage(el, 0, 0);
+}
+function galDrawAll() { if (!mv.shown) for (const type of Object.keys(gal.tiles)) galDraw(type); }
+function galTick() { // 가리킨 타일은 돌리고, 벗어난 타일은 정면으로 되돌림
+  if (gal.raf) return;
+  gal.last = performance.now();
+  const step = now => {
+    gal.raf = 0;
+    const dt = Math.min(64, now - gal.last) / 1000; gal.last = now;
+    let busy = false;
+    if (!mv.shown) for (const [type, t] of Object.entries(gal.tiles)) {
+      if (!t.m) continue;
+      if (t.spin && !stillMotion()) { t.yaw += dt * 0.75; busy = true; }
+      else if (t.yaw) {
+        const full = Math.PI * 2, y = ((t.yaw % full) + full) % full, to = y > Math.PI ? full : 0;
+        t.yaw = Math.abs(to - y) < 0.01 ? 0 : y + (to - y) * Math.min(1, dt * 7); busy = busy || t.yaw !== 0;
+      } else continue;
+      galDraw(type);
+    }
+    if (busy) gal.raf = requestAnimationFrame(step);
+  };
+  gal.raf = requestAnimationFrame(step);
+}
+function galLoad() {
+  for (const [type, t] of Object.entries(gal.tiles)) mvModel(type).then(m => { t.m = m; t.el.classList.remove('loading'); galDraw(type); if (t.spin) galTick(); },
+    e => { console.warn('3D model:', e); t.el.classList.remove('loading'); });
+}
+if ('ResizeObserver' in window) new ResizeObserver(galDrawAll).observe(mvEl.gal);
+
 /* ───────── boot ───────── */
 hist = [snapshot()]; hi = 0;
 syncToolbar(); fit(); render();
 if ('ResizeObserver' in window) new ResizeObserver(() => { if (view.fitted) fit(); schedule(); }).observe(stage);
 else window.addEventListener('resize', () => { if (view.fitted) fit(); schedule(); });
 initShared();
+galLoad();
 })();
 </script>
 </body></html>
