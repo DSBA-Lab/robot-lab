@@ -1,5 +1,5 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
-<title>Physical AI 랩 배치도</title>
+<title>DSBA Robot Lab</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
@@ -61,11 +61,6 @@ button,input,select,textarea{font:inherit;color:inherit}
 .bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
 .brand{display:flex;align-items:baseline;gap:10px;margin-right:auto;min-width:0}
 .brand h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
-.brand .sub{font-family:var(--font-data);font-size:12px;color:var(--ink-2);white-space:nowrap}
-.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:2px 10px 2px 8px;background:var(--panel)}
-.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ink-2)}
-.chip[data-state="shared"]::before{background:var(--ok)}
-.chip[data-state="offline"]::before,.chip[data-state="readonly"]::before{background:var(--accent)}
 .tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .tg{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:6px;background:var(--panel);overflow:hidden}
 .tg > *{border:0;background:transparent;padding:5px 10px;font-size:13px;min-height:30px}
@@ -232,16 +227,6 @@ details.panel[open] > summary{margin-bottom:10px}
 .meas circle{fill:var(--bad);pointer-events:none}
 .meas text{fill:var(--bad);font-family:var(--font-data)!important;font-weight:500;paint-order:stroke;stroke:var(--floor);stroke-linejoin:round;pointer-events:none}
 
-/* export dialog */
-.overlay{position:fixed;inset:0;z-index:20;background:rgba(8,18,32,.55);display:grid;place-items:center;
-  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-.dlg{width:min(560px,100%);max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
-.dlg h2{margin:0 0 4px;font-size:15px;font-weight:600}
-.dlg p{margin:0 0 10px;font-size:13px;color:var(--ink-2)}
-.dlg textarea{width:100%;height:220px;resize:vertical;border:1px solid var(--line);border-radius:5px;background:var(--floor);padding:8px;font-family:var(--font-data);font-size:12px}
-.dlg .msg{min-height:1.4em;margin:8px 0 0;font-size:12px;color:var(--ink-2)}
-.dlg .msg.err{color:var(--bad)}
-
 @media (max-width:1080px){
   html,body{height:auto}
   .app{height:auto;display:flex;flex-direction:column}
@@ -250,7 +235,6 @@ details.panel[open] > summary{margin-bottom:10px}
   .side{order:1;overflow:visible}
   .rail{order:2;overflow:visible}
   .cat{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
-  .brand .sub{display:none}
 }
 @media (prefers-reduced-motion:no-preference){
   .btn,.cat button,.olist button,.tg button{transition:background-color .12s,border-color .12s}
@@ -260,9 +244,7 @@ details.panel[open] > summary{margin-bottom:10px}
 <div class="app">
   <header class="bar">
     <div class="brand">
-      <h1>Physical AI 랩 배치도</h1>
-      <span class="sub" id="sub">347 × 848 cm · 단위 cm</span>
-      <span class="chip" id="sync" data-state="local">이 브라우저에 저장</span>
+      <h1>DSBA Robot Lab</h1>
     </div>
     <div class="tools">
       <div class="tg">
@@ -287,7 +269,6 @@ details.panel[open] > summary{margin-bottom:10px}
         <button type="button" id="t-zin" title="확대" aria-label="확대">+</button>
       </div>
       <div class="tg">
-        <button type="button" id="t-io">내보내기 · 불러오기</button>
         <button type="button" id="t-reset" title="처음 배치로 되돌립니다">초기화</button>
       </div>
     </div>
@@ -301,18 +282,7 @@ details.panel[open] > summary{margin-bottom:10px}
         <p class="note">누르면 도면 가운데 빈자리에 놓입니다. 치수는 대략값이며 선택 후 수정할 수 있습니다.</p>
       </section>
 
-      <details class="panel" id="roomset" open>
-        <summary>문 열림 · 창문 (임시값)</summary>
-        <div class="grid2">
-          <label class="fld"><span>문 경첩</span><select id="r-hinge"><option value="left">왼쪽</option><option value="right">오른쪽</option></select></label>
-          <label class="fld"><span>문 열림 방향</span><select id="r-swing"><option value="in">안쪽</option><option value="out">바깥쪽</option></select></label>
-          <label class="fld"><span>창문: 왼쪽 벽에서</span><input id="r-winx" type="number" min="0" step="1"></label>
-          <label class="fld"><span>창문 폭</span><input id="r-winw" type="number" min="0" step="1"></label>
-        </div>
-        <p class="note">실측값이 없는 항목만 남겼습니다. 방 347 × 848 cm와 문 위치(왼쪽 벽에서 20 cm, 폭 100 cm)는 실측값으로 고정했습니다.</p>
-      </details>
-
-      <details class="panel">
+      <details class="panel" open>
         <summary>조작법</summary>
         <dl class="keys">
           <dt>드래그</dt><dd>물체 이동. 확대했을 때는 빈 곳을 끌어 화면 이동</dd>
@@ -396,23 +366,6 @@ details.panel[open] > summary{margin-bottom:10px}
 
 <div class="mv-backdrop" id="mv-backdrop" hidden></div>
 
-<div class="overlay" id="io" hidden>
-  <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="io-title">
-    <h2 id="io-title">배치 내보내기 · 불러오기</h2>
-    <p>아래 내용을 복사해 두면 그대로 다시 불러올 수 있습니다. 다른 배치를 붙여 넣고 불러오기를 누르면 현재 도면이 바뀝니다.</p>
-    <textarea id="io-text" spellcheck="false" aria-label="배치 데이터 (JSON)"></textarea>
-    <div class="row">
-      <button type="button" class="btn" id="io-copy">복사</button>
-      <button type="button" class="btn" id="io-save" hidden>파일로 저장</button>
-      <button type="button" class="btn" id="io-load">불러오기</button>
-      <label class="btn" for="io-file">파일 열기</label>
-      <input type="file" id="io-file" accept=".json,application/json" hidden>
-      <button type="button" class="btn" id="io-close" style="margin-left:auto">닫기</button>
-    </div>
-    <p class="msg" id="io-msg"></p>
-  </div>
-</div>
-
 <script>
 (() => {
 'use strict';
@@ -421,7 +374,7 @@ details.panel[open] > summary{margin-bottom:10px}
 const LS_STATE = 'pai-lab-plan-v1';
 const LS_UI = 'pai-lab-plan-ui-v1';
 const WALL_T = 12;
-const ROOM = { w: 347, d: 848, doorX: 20, doorW: 100 }; // 실측 확정값 (cm)
+const ROOM = { w: 347, d: 848, doorX: 20, doorW: 100, hinge: 'left', swing: 'in', winX: 30, winW: 287 }; // 확정값 (cm): 문은 왼쪽 벽에서 20, 경첩 왼쪽, 안쪽으로 열림
 const SPECS = {
   openarm2: 'OpenArm 2.0 · 양팔 7자유도 · 팔 리치 606 mm, 팔당 5.5 kg (공식 문서) · 베이스 플레이트 19 × 25 cm, 팔을 내린 전체 폭 41 cm, 어깨 간격 30.5 cm (공식 URDF 모델 기준).',
   xarm7: 'UFACTORY xArm 7 · 7자유도 · 가반하중 3.5 kg · 리치 700 mm · 베이스 Ø126 mm · 본체 13.7 kg · 별도 컨트롤 박스가 필요합니다.',
@@ -442,12 +395,7 @@ const CATALOG = [
   ]},
   { group: '장비', items: [
     { type: 'pc',     name: '워크스테이션', w: 25, d: 55,  reach: 0, cat: 'equip' },
-    { type: 'rack',   name: '서버 랙',      w: 60, d: 100, reach: 0, cat: 'equip' },
     { type: 'tripod', name: '카메라 삼각대', w: 70, d: 70,  reach: 0, cat: 'equip', round: true },
-  ]},
-  { group: '구역', items: [
-    { type: 'zone',  name: '테스트 구역', w: 200, d: 200, reach: 0, cat: 'zone' },
-    { type: 'aisle', name: '통로 확보',   w: 90,  d: 200, reach: 0, cat: 'zone' },
   ]},
 ];
 const CATS = ['furn', 'robot', 'equip', 'zone'];
@@ -463,9 +411,7 @@ const fmt = n => { const v = Math.round(n * 10) / 10; return Number.isInteger(v)
 const num = (v, def, lo, hi) => { v = Number(v); return Number.isFinite(v) ? clamp(v, lo, hi) : def; };
 const norm = a => ((a % 360) + 360) % 360;
 
-function defaultRoom() {
-  return { ...ROOM, hinge: 'left', swing: 'in', winX: 30, winW: 287 };
-}
+const defaultRoom = () => ({ ...ROOM });
 function defaultArms() {
   // 보유 로봇팔 4대. 위치는 임시로 방 가운데에 세워 둔 것
   const base = { cat: 'robot', rot: 0, soft: false, lock: false };
@@ -484,16 +430,6 @@ function defaultItems(room) {
     ...defaultArms(),
   ].map(cleanItem);
 }
-function cleanRoom(r) {
-  const d = defaultRoom(); r = r && typeof r === 'object' ? r : {};
-  const o = {
-    ...ROOM,
-    hinge: r.hinge === 'right' ? 'right' : 'left', swing: r.swing === 'out' ? 'out' : 'in',
-    winX: num(r.winX, d.winX, 0, 3000), winW: num(r.winW, d.winW, 0, 3000),
-  };
-  o.winX = clamp(o.winX, 0, o.w); o.winW = clamp(o.winW, 0, o.w - o.winX);
-  return o;
-}
 function cleanItem(o) {
   o = o && typeof o === 'object' ? o : {};
   let id = String(o.id || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 24); if (!id) id = uid();
@@ -509,13 +445,10 @@ function cleanItem(o) {
 }
 function cleanState(s) {
   s = s && typeof s === 'object' ? s : {};
-  const room = cleanRoom(s.room);
+  const room = defaultRoom(); // 방은 고정이므로 저장된 값은 쓰지 않음
   const seen = new Set();
   const items = (Array.isArray(s.items) ? s.items : []).slice(0, 200).map(cleanItem);
-  if (s.v !== 2) { // 이전 버전에서 저장한 배치: 문이 왼쪽 벽 쪽으로 확정되었고 보유 로봇팔이 추가됨
-    room.hinge = 'left';
-    if (!items.some(it => SPECS[it.type])) items.push(...defaultArms().map(cleanItem));
-  }
+  if (s.v !== 2 && !items.some(it => SPECS[it.type])) items.push(...defaultArms().map(cleanItem)); // 이전 버전에서 저장한 배치에는 보유 로봇팔이 없음
   for (const it of items) if (it.type === 'openarm2' && it.w === 45 && it.d === 25 && it.armOff === 17.5) { it.w = 41; it.armOff = 15.25; } // 사진 추정값 → 공식 모델 치수
   items.forEach(it => { while (seen.has(it.id)) it.id = uid(); seen.add(it.id); });
   return { room, items };
@@ -620,7 +553,7 @@ function commit() {
 }
 function restore(s) {
   state = cleanState(JSON.parse(s)); if (!selItem()) ui.sel = null;
-  syncRoomForm(); if (view.fitted) fit(); schedule();
+  if (view.fitted) fit(); schedule();
 }
 function undo() { if (hi > 0) { hi--; restore(hist[hi]); saveLocal(); pushShared(); syncToolbar(); } }
 function redo() { if (hi < hist.length - 1) { hi++; restore(hist[hi]); saveLocal(); pushShared(); syncToolbar(); } }
@@ -796,7 +729,6 @@ function itemSvg(it, a, px, fs) {
 let cursorTxt = '';
 function renderStatus() {
   const R = state.room, bad = lastAn.filter(a => a.bad).length;
-  $('sub').textContent = `${fmt(R.w)} × ${fmt(R.d)} cm · 단위 cm`;
   $('status').innerHTML =
     `<span>방 <b>${(R.w / 100).toFixed(2)} × ${(R.d / 100).toFixed(2)} m</b> · <b>${(R.w * R.d / 10000).toFixed(1)} m²</b></span>` +
     `<span>물체 <b>${state.items.length}</b></span>` +
@@ -961,7 +893,6 @@ svg.addEventListener('pointercancel', endPointer);
 svg.addEventListener('wheel', e => { e.preventDefault(); zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0016)), e.clientX, e.clientY); }, { passive: false });
 
 document.addEventListener('keydown', e => {
-  if (!$('io').hidden) { if (e.key === 'Escape') closeIo(); return; }
   const t = e.target, typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
   const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
   if (mod && k === 'z') { if (typing) return; e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
@@ -997,7 +928,7 @@ $('t-zout').addEventListener('click', () => zoomAt(0.8));
 $('t-fit').addEventListener('click', () => { fit(); schedule(); });
 $('t-reset').addEventListener('click', () => {
   const room = defaultRoom(); state = { room, items: defaultItems(room) }; ui.sel = null;
-  syncRoomForm(); fit(); commit(); schedule(); toast('처음 배치로 되돌렸습니다. 되돌리기로 취소할 수 있습니다.');
+  fit(); commit(); schedule(); toast('처음 배치로 되돌렸습니다. 되돌리기로 취소할 수 있습니다.');
 });
 let toastT = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3600); }
@@ -1020,71 +951,15 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = fals
   }
 })();
 
-/* ───────── room settings ───────── */
-const RF = { hinge: $('r-hinge'), swing: $('r-swing'), winX: $('r-winx'), winW: $('r-winw') };
-function syncRoomForm() {
-  const R = state.room;
-  setVal(RF.winX, fmt(R.winX)); setVal(RF.winW, fmt(R.winW));
-  RF.hinge.value = R.hinge; RF.swing.value = R.swing;
-}
-function applyRoom(patch) { state.room = cleanRoom({ ...state.room, ...patch }); schedule(); }
-for (const k of ['winX', 'winW']) {
-  RF[k].addEventListener('input', () => { const v = parseFloat(RF[k].value); if (Number.isFinite(v)) applyRoom({ [k]: v }); });
-  RF[k].addEventListener('change', () => { syncRoomForm(); commit(); schedule(); });
-}
-RF.hinge.addEventListener('change', () => { applyRoom({ hinge: RF.hinge.value }); commit(); });
-RF.swing.addEventListener('change', () => { applyRoom({ swing: RF.swing.value }); commit(); });
-
-/* ───────── export / import ───────── */
-let downloads = null;
-function ioMsg(t, err) { const m = $('io-msg'); m.textContent = t; m.classList.toggle('err', !!err); }
-function openIo() { $('io-text').value = JSON.stringify({ v: 2, room: state.room, items: state.items }, null, 1); ioMsg(''); $('io-save').hidden = !(downloads || !window.claude); $('io').hidden = false; $('io-text').focus(); }
-function closeIo() { $('io').hidden = true; $('t-io').focus(); }
-function loadText(txt) {
-  let data; try { data = JSON.parse(txt); } catch (e) { ioMsg('JSON 형식이 올바르지 않습니다. 내보낸 내용을 그대로 붙여 넣어 주세요.', true); return; }
-  if (!data || typeof data !== 'object' || !data.room || !Array.isArray(data.items)) { ioMsg('배치 데이터가 아닙니다. room과 items 항목이 필요합니다.', true); return; }
-  state = cleanState(data); ui.sel = null; syncRoomForm(); fit(); commit(); schedule(); closeIo(); toast('배치를 불러왔습니다.');
-}
-$('t-io').addEventListener('click', openIo);
-$('io-close').addEventListener('click', closeIo);
-$('io').addEventListener('pointerdown', e => { if (e.target === $('io')) closeIo(); });
-$('io-load').addEventListener('click', () => loadText($('io-text').value));
-$('io-copy').addEventListener('click', () => {
-  const ta = $('io-text'), fallback = () => { ta.focus(); ta.select(); ioMsg('자동 복사가 막혀 있어 전체를 선택했습니다. Ctrl+C로 복사하세요.'); };
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(() => ioMsg('복사했습니다.'), fallback); else fallback();
-});
-$('io-save').addEventListener('click', async () => {
-  const data = $('io-text').value, filename = 'lab-layout.json';
-  if (downloads) {
-    try { await downloads.save({ filename, data }); ioMsg('저장했습니다.'); }
-    catch (e) { ioMsg(e && e.code === 'declined' ? '저장을 취소했습니다.' : '이 화면에서는 파일로 저장할 수 없습니다. 복사를 이용하세요.', !(e && e.code === 'declined')); }
-  } else {
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' })); a.download = filename;
-    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  }
-});
-$('io-file').addEventListener('change', e => {
-  const f = e.target.files && e.target.files[0]; if (!f) return;
-  const rd = new FileReader(); rd.onload = () => { $('io-text').value = String(rd.result || ''); ioMsg('파일을 읽었습니다. 불러오기를 누르면 적용됩니다.'); }; rd.onerror = () => ioMsg('파일을 읽지 못했습니다.', true);
-  rd.readAsText(f); e.target.value = '';
-});
-
 /* ───────── shared storage (available when published; falls back to this browser) ───────── */
 const shared = { ref: null, live: false, dead: false, readonly: false, dirty: false, writing: false, lastRev: '', seenRev: '', pending: null, t: 0, retries: 0 };
-function setSync(state_, text) { const c = $('sync'); c.dataset.state = state_; c.textContent = text; }
-function syncChip() {
-  if (!shared.ref || shared.dead) setSync('local', '이 브라우저에 저장');
-  else if (shared.readonly) setSync('readonly', '보기 전용 · 변경은 이 브라우저에만 저장');
-  else if (!shared.live) setSync('connecting', '공유 저장소 연결 중');
-  else setSync('shared', '공유 저장 · 함께 보는 사람과 동기화');
-}
 function adoptRemote(data) {
   shared.seenRev = data.rev; shared.pending = null;
   const next = cleanState(data), s = JSON.stringify({ v: 2, room: next.room, items: next.items });
   if (s === snapshot()) return;
   state = next; if (!selItem()) ui.sel = null;
   hist = hist.slice(0, hi + 1); hist.push(s); hi = hist.length - 1;
-  saveLocal(); syncRoomForm(); syncToolbar(); if (view.fitted) fit(); schedule();
+  saveLocal(); syncToolbar(); if (view.fitted) fit(); schedule();
 }
 function flushRemote() { if (shared.pending && !action && !shared.dirty && !shared.writing) adoptRemote(shared.pending); }
 function pushShared() {
@@ -1105,22 +980,19 @@ async function writeShared() {
     else if (code === 'quota_exceeded' || code === 'resource_exhausted') toast('공유 저장소 한도에 걸려 이번 변경은 이 브라우저에만 저장했습니다.');
     else shared.dead = true;
   }
-  shared.writing = false; syncChip();
+  shared.writing = false;
   if (shared.dirty) { clearTimeout(shared.t); shared.t = setTimeout(writeShared, delay); } // an edit landed while this write was in flight
 }
 async function initShared() {
   if (!window.claude || typeof window.claude.use !== 'function') return;
   let db = null, user = null;
-  try { [db, user, downloads] = await Promise.all([window.claude.use('db'), window.claude.use('user'), window.claude.use('downloads')]); } catch (e) {}
+  try { [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]); } catch (e) {}
   if (!db) return;
   try { if (user && (await user.can('data.write')) === false) shared.readonly = true; } catch (e) {}
   try { shared.ref = db.doc('layouts/main'); } catch (e) { return; }
-  syncChip();
-  const timer = setTimeout(() => { if (!shared.live && !shared.dead) setSync('offline', '공유 저장소 응답 없음 · 이 브라우저에 저장 중'); }, 10000);
   let first = true;
   shared.ref.onSnapshot(snap => {
     const definitive = !snap.metadata.fromCache;
-    if (definitive) clearTimeout(timer);
     if (!snap.metadata.hasPendingWrites && snap.exists) {
       const data = snap.data();
       if (data && data.rev && data.rev !== shared.lastRev && data.rev !== shared.seenRev) {
@@ -1133,8 +1005,7 @@ async function initShared() {
       first = false;
       if (!shared.live) { shared.live = true; if (!snap.exists && hi > 0) pushShared(); } // edits made before the store answered
     }
-    syncChip();
-  }, () => { clearTimeout(timer); shared.dead = true; syncChip(); });
+  }, () => { shared.dead = true; });
 }
 
 /* ───────── 3D model viewer (three.js is loaded only when a robot is first selected) ───────── */
@@ -1417,7 +1288,7 @@ mvEl.stage.addEventListener('dblclick', () => { if (mv.cur) { const q = mv.q; mv
 
 /* ───────── boot ───────── */
 hist = [snapshot()]; hi = 0;
-syncRoomForm(); syncToolbar(); fit(); render();
+syncToolbar(); fit(); render();
 if ('ResizeObserver' in window) new ResizeObserver(() => { if (view.fitted) fit(); schedule(); }).observe(stage);
 else window.addEventListener('resize', () => { if (view.fitted) fit(); schedule(); });
 initShared();
