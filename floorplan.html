@@ -485,7 +485,7 @@ const SPECS = {
   so101: 'SO-101 · 베이스 약 11 × 9 cm (공개 CAD 기준) · 리치 약 44 cm (공개 URDF 링크 길이 합산, 그리퍼 끝 기준).',
   so101l: 'SO-101 리더 암 · 팔로워를 원격 조작하는 장치. 크기와 관절 구조는 팔로워와 같고 집게 대신 손잡이가 달려 있습니다. 팔로워 옆, 같은 테이블 끝에 클램프로 고정하고 조작자가 그 뒤에 앉습니다.',
 };
-const TOP_TYPES = new Set(['openarm2', 'xarm7', 'so101', 'so101l', 'arm', 'pc', 'monitor', 'keyboard']); // 책상·테이블 위에 올릴 수 있는 것
+const TOP_TYPES = new Set(['openarm2', 'xarm7', 'so101', 'so101l', 'arm', 'pc']); // 책상·테이블 위에 올릴 수 있는 것
 /* 로봇을 올려 쓰는 테이블: [종류, 이름, 가로, 세로, 테이블 뒤쪽 끝에서 로봇 중심까지]. 로봇은 가로로 가운데, 세로로 끝에 둠.
    OpenArm은 베이스 플레이트(깊이 25)를, xArm7은 베이스 뒤 커넥터(중심에서 9.2)를 테이블 끝에 맞춤. SO-101은 클램프로 물리므로 테이블 끝에 붙임 */
 const SEAT = { openarm2: ['otable', '광학 테이블', 80, 60, 12.5], xarm7: ['otable', '광학 테이블', 80, 60, 10], so101: ['table', 'SO-101 테이블', 140, 70, 5] };
@@ -498,12 +498,12 @@ const TOP = {
 };
 for (const g of Object.values(TOP)) g.svg = g.parts.map(q => `<path class="g${q[0]}" d="${q.slice(1)}"/>`).join('');
 TOP.so101l = TOP.so101; // 리더 암은 팔로워와 같은 윤곽으로 그리고 색만 옅게 (실물은 집게 대신 손잡이)
-/* 책상 위 소품. 모니터는 화면이 −y 쪽(앞)을 보고 뒤에 받침이 있음. 키보드는 판 위에 자판 세 줄. 모양으로 알 수 있으니 도면에 이름표는 붙이지 않음 */
+/* 워크스테이션 책상(wsdesk)에 그려 넣는 모니터와 키보드. 책상의 일부라 따로 고르거나 옮길 수 없음. 모니터는 화면이 −y 쪽(앉는 쪽)을 보고 뒤에 받침이 있음. 키보드는 판 위에 자판 세 줄 */
 const PROPS = {
   monitor: { box: [-30, -8, 30, 8], parts: ['dM-11 -3H11V8H-11Z', 'dM-30 -8H30V-4.5H-30Z'] },
   keyboard: { box: [-22.5, -7.5, 22.5, 7.5], parts: ['lM-22.5 -7.5H22.5V7.5H-22.5Z', 'dM-20 -5H20V-3H-20Z', 'dM-20 -1H20V1H-20Z', 'dM-20 3H20V5H-20Z'] },
 };
-for (const [k, g] of Object.entries(PROPS)) { g.svg = g.parts.map(q => `<path class="g${q[0]}" d="${q.slice(1)}"/>`).join(''); TOP[k] = g; }
+for (const g of Object.values(PROPS)) g.svg = g.parts.map(q => `<path class="g${q[0]}" d="${q.slice(1)}"/>`).join('');
 const CATALOG = [
   { group: '로봇', items: [
     { type: 'openarm2', name: 'OpenArm 2.0', w: 41,   d: 25,   reach: 60.6, armOff: 15.25, cat: 'robot' },
@@ -512,6 +512,7 @@ const CATALOG = [
   ]},
   { group: '가구', items: [
     { type: 'desk',  name: '책상',        w: 160, d: 80, reach: 0, cat: 'furn' },
+    { type: 'wsdesk', name: '워크스테이션', w: 160, d: 80, reach: 0, cat: 'furn' },
     { type: 'table', name: '작업 테이블', w: 120, d: 60, reach: 0, cat: 'furn' },
     { type: 'otable', name: '광학 테이블', w: 80, d: 60, reach: 0, cat: 'furn' },
     { type: 'shelf', name: '선반',        w: 90,  d: 40, reach: 0, cat: 'furn' },
@@ -519,8 +520,6 @@ const CATALOG = [
   ]},
   { group: '장비', items: [
     { type: 'pc',     name: '컴퓨터 본체', w: 25, d: 55,  reach: 0, cat: 'equip' },
-    { type: 'monitor', name: '모니터', w: 60, d: 16, reach: 0, cat: 'equip' },
-    { type: 'keyboard', name: '키보드', w: 45, d: 15, reach: 0, cat: 'equip' },
     { type: 'so101l', name: 'SO-101 리더', w: 11, d: 9, reach: 0, cat: 'equip' },
     { type: 'tripod', name: '카메라 삼각대', w: 70, d: 70,  reach: 0, cat: 'equip', round: true },
   ]},
@@ -559,14 +558,11 @@ function defaultTeleop() {
   return [{ ...lead, id: 'so101l-1', name: '리더 #1', y: 450 }, { ...lead, id: 'so101l-2', name: '리더 #2', y: 350 }];
 }
 function defaultDesk() {
-  // 워크스테이션: 왼쪽 벽에 붙인 책상(책상 1과 OpenArm 사이), 벽 쪽에 모니터, 그 앞에 키보드, 창문 쪽 끝에 본체, 방 쪽에 의자
-  const top = { cat: 'equip', rot: 90 };
+  // 워크스테이션: 왼쪽 벽에 붙인 책상(책상 1과 OpenArm 사이). 모니터와 키보드는 책상 그림에 들어 있고, 창문 쪽 끝에 본체, 방 쪽에 의자
   return [
-    { id: 'ws-desk', type: 'desk', name: '워크스테이션', cat: 'furn', x: 40, y: 330, w: 160, d: 80, rot: 90 },
-    { ...top, id: 'ws-pc', type: 'pc', name: 'PC', x: 30, y: 270, w: 25, d: 55 },
-    { ...top, id: 'ws-monitor', type: 'monitor', name: '모니터', x: 16, y: 335, w: 60, d: 16 },
-    { ...top, id: 'ws-keyboard', type: 'keyboard', name: '키보드', x: 56, y: 335, w: 45, d: 15 },
-    { id: 'ws-chair', type: 'chair', name: '의자', cat: 'furn', x: 110, y: 335, w: 55, d: 55, round: true, soft: true },
+    { id: 'ws-desk', type: 'wsdesk', name: '워크스테이션', cat: 'furn', x: 40, y: 330, w: 160, d: 80, rot: 90 },
+    { id: 'ws-pc', type: 'pc', name: 'PC', cat: 'equip', x: 30, y: 270, w: 25, d: 55, rot: 90 },
+    { id: 'ws-chair', type: 'chair', name: '의자', cat: 'furn', x: 110, y: 330, w: 55, d: 55, round: true, soft: true },
   ];
 }
 function defaultItems(room) {
@@ -610,7 +606,12 @@ function cleanState(s) {
   s = s && typeof s === 'object' ? s : {};
   const room = defaultRoom(); // 방은 고정이므로 저장된 값은 쓰지 않음
   const seen = new Set();
-  const items = (Array.isArray(s.items) ? s.items : []).slice(0, 200).map(cleanItem);
+  let items = (Array.isArray(s.items) ? s.items : []).slice(0, 200).map(cleanItem);
+  const props = items.filter(it => it.type === 'monitor' || it.type === 'keyboard'); // 한때 따로 놓던 모니터·키보드: 놓여 있던 책상을 워크스테이션 책상으로 바꾸고 없앰
+  if (props.length) {
+    for (const q of props) { const dk = items.find(o => o.type === 'desk' && inPoly(poly(o), q.x, q.y)); if (dk) dk.type = 'wsdesk'; }
+    items = items.filter(it => !props.includes(it));
+  }
   if (!(s.v >= 2) && !items.some(it => SPECS[it.type])) items.push(...defaultArms().map(cleanItem)); // 이전 버전에서 저장한 배치에는 보유 로봇팔이 없음
   for (const it of items) if (it.type === 'openarm2' && it.w === 45 && it.d === 25 && it.armOff === 17.5) { it.w = 41; it.armOff = 15.25; } // 사진 추정값 → 공식 모델 치수
   if (!(s.v >= 3)) items.push(...seatRobots(items)); // v2까지는 로봇이 테이블 없이 서 있었음
@@ -672,7 +673,7 @@ function glyphBox(it) { // 위에서 본 로봇 그림이 차지하는 범위
   return bbox([[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => [it.x + x * c - y * s, it.y + x * s + y * c]));
 }
 const solid = it => it.cat !== 'zone' && !it.soft;
-const isSurface = it => it.type === 'desk' || it.type === 'table' || it.type === 'otable';
+const isSurface = it => it.type === 'desk' || it.type === 'wsdesk' || it.type === 'table' || it.type === 'otable';
 const isTop = it => TOP_TYPES.has(it.type);
 const collides = (a, b) => solid(a) && solid(b) && !((isTop(a) && isSurface(b)) || (isTop(b) && isSurface(a)));
 const layer = it => it.cat === 'zone' ? 0 : isSurface(it) ? 1 : isTop(it) ? 3 : 2;
@@ -825,7 +826,7 @@ function render() {
     const hidden = isSurface(it) && under.some((j, k) => j === i && boxHit(gb[k], mid)); // 올려 둔 로봇에 가려지는 테이블 이름은 뺌
     const g = itemSvg(it, a, px, fs, holes, hidden);
     if (it.cat === 'zone') zones += g; else bodies += g;
-    if (gb[i] && !PROPS[it.type]) labels += robotLabel(it, i);
+    if (gb[i]) labels += robotLabel(it, i);
     if (ui.reach && it.reach > 0) {
       const rr = rad(it.rot), offs = it.armOff > 0 ? [-it.armOff, it.armOff] : [0]; // 양팔은 어깨마다 하나씩
       const rc = REACH_CLS[it.type] || '', dash = `stroke-dasharray="${px(4)} ${px(3)}"`;
@@ -921,6 +922,7 @@ function itemSvg(it, a, px, fs, holes, noLabel) {
     g += `<rect class="body" x="${-hw}" y="${-hd}" width="${it.w}" height="${it.d}" rx="${Math.min(1, hw, hd)}" stroke-width="${px(1.2)}"${dash}/>`;
     if (it.cat === 'zone') g += `<rect class="hatch" x="${-hw}" y="${-hd}" width="${it.w}" height="${it.d}" fill="url(#hatch)"/>`;
     if (holes && it.type === 'otable') g += `<rect class="holes" x="${-hw}" y="${-hd}" width="${it.w}" height="${it.d}" fill="url(#holes)"/>`;
+    if (it.type === 'wsdesk') g += `<g class="glyph" stroke-width="${Math.min(px(0.9), 0.45)}"><g transform="translate(0 ${hd - 16})">${PROPS.monitor.svg}</g><g transform="translate(0 ${24 - hd})">${PROPS.keyboard.svg}</g></g>`; // 모니터는 뒤쪽 끝, 키보드는 앉는 쪽
   }
   if (Math.min(it.w, it.d) < px(26)) g += `<circle class="hit-pad" r="${px(13)}"/>`; // 작은 물체도 잡기 쉽게
   if (G) return g + `<g class="glyph g-${it.type}" stroke-width="${Math.min(px(0.9), 0.45)}">${G.svg}</g></g>`; // 팔이 뻗은 쪽이 앞. 이름표는 render가 바깥에 붙임
@@ -936,9 +938,11 @@ function itemSvg(it, a, px, fs, holes, noLabel) {
   const em = Math.max(1, textEm(it.name)), dims = `${fmt(it.w)}×${fmt(it.d)}`;
   let f = fs * 1.05, inside = f * em <= aw * 0.92 && ah >= f * 1.5;
   if (!inside) { const f2 = aw * 0.92 / em; if (f2 >= fs * 0.78 && ah >= f2 * 1.5) { f = f2; inside = true; } }
-  g += `<g transform="rotate(${-it.rot})">`;
+  const off = it.type === 'wsdesk' ? hw - 25 : 0; // 워크스테이션 책상은 가운데에 모니터와 키보드가 있어 이름을 한쪽 끝으로 뺌
+  if (off && it.w < 130) return g + '</g>';
+  g += `<g transform="translate(${off} 0) rotate(${-it.rot})">`;
   if (inside) {
-    const two = ah >= f * 3.2 && fs * 0.9 * 0.6 * dims.length <= aw * 0.92;
+    const two = it.type !== 'chair' && ah >= f * 3.2 && fs * 0.9 * 0.6 * dims.length <= aw * 0.92; // 의자는 이름만
     g += `<text class="lbl" y="${two ? -f * 0.15 : f * 0.36}" font-size="${f}" text-anchor="middle">${esc(it.name)}</text>`;
     if (two) g += `<text class="lbl sub" y="${f * 1.1}" font-size="${fs * 0.9}" text-anchor="middle">${dims}</text>`;
   } else {
