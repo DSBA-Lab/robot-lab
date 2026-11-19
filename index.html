@@ -27,7 +27,7 @@
   --ot-fill:#d3d7dd; --ot-line:#5f6672; --ot-hole:#99a0ab;
   --bot-d:#2b303a; --bot-d-line:#9aa3b2; --bot-l:#f3f4f6; --bot-l-line:#5b6370; --bot-y:#f4c430; --bot-y-line:#8a6a00; --bot-y-soft:#fdf3c4;
   --bad:#c93a3a; --bad-fill:rgba(201,58,58,.16); --ok:#2e7d4f;
-  --stage3d:#dde0e5; --stage3d-hi:#e7e9ed; --stage-grid:#c2c7cf; --stage-axis:#9aa0ab;
+  --stage3d:#dde0e5; --stage3d-hi:#e7e9ed; --stage-grid:#c2c7cf; --stage-axis:#9aa0ab; --stage-line:#a9afba;
   --font-ui:"Inter","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --font-data:"Geist Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
@@ -51,7 +51,7 @@
     --ot-fill:#30353f; --ot-line:#a0a6b1; --ot-hole:#59606d;
     --bot-d:#3d4555; --bot-d-line:#aeb6c4; --bot-l:#e9ebef; --bot-l-line:#4d5460; --bot-y:#f2c744; --bot-y-line:#6f5300; --bot-y-soft:#4b4018;
     --bad:#f07070; --bad-fill:rgba(240,112,112,.22); --ok:#62c48a;
-    --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492;
+    --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492; --stage-line:#666d7a;
     color-scheme:dark;
   }
 }
@@ -74,7 +74,7 @@
   --ot-fill:#30353f; --ot-line:#a0a6b1; --ot-hole:#59606d;
   --bot-d:#3d4555; --bot-d-line:#aeb6c4; --bot-l:#e9ebef; --bot-l-line:#4d5460; --bot-y:#f2c744; --bot-y-line:#6f5300; --bot-y-soft:#4b4018;
   --bad:#f07070; --bad-fill:rgba(240,112,112,.22); --ok:#62c48a;
-  --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492;
+  --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492; --stage-line:#666d7a;
   color-scheme:dark;
 }
 
@@ -185,7 +185,7 @@ details.sec[open] > summary{margin-bottom:10px}
 
 /* robot side: gallery of all robots, or the 3D viewport of one */
 .show{position:relative;border-bottom:1px solid var(--line);background:var(--stage3d)}
-.gal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line-2)}
+.gal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--stage-line)} /* the 1px gaps are the dividers between the robots' tiles */
 .gt{position:relative;display:block;min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:var(--stage3d);aspect-ratio:1/1;overflow:hidden;text-align:left;cursor:pointer}
 .gt:first-child{grid-column:1/-1;aspect-ratio:2/1}
 .gt:hover,.gt:focus-visible{background:var(--stage3d-hi)}
