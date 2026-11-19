@@ -20,3 +20,14 @@ python3 tools/build_models.py <원본을 내려받은 폴더> models
 ```
 
 `<원본 폴더>` 아래에 `so101/`, `xarm7/`, `openarm/`으로 각 저장소의 해당 경로를 그대로 두면 됩니다.
+
+## 도면의 로봇 그림
+
+도면에 그려지는 위에서 본 로봇 모양(`floorplan.html`의 `TOP`)도 같은 원본에서 만듭니다. 로봇을 준비 자세로 두고
+링크마다 바닥에 비친 윤곽을 딴 것입니다.
+
+```bash
+python3 tools/build_topview.py <원본을 내려받은 폴더>
+```
+
+출력된 `const TOP = {...}` 블록을 `floorplan.html`에 붙여 넣으면 됩니다.

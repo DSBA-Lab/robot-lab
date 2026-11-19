@@ -5,7 +5,7 @@
 /* Layout: an application shell, not a page of cards. Top bar, catalog rail left, the drawing next to it, robots on the right.
    The drawing column is only as wide as the room needs at the current window height (the room is 347 × 848, so it is narrow);
    everything left over goes to the robot side. When that side is wide enough it splits into a 3D viewport and a settings column.
-   Regions are split by hairlines and the drawing is the only white surface. UI stays monochrome; blue means "selected", red means "collision". A robot's reach circle takes the colour of the real arm (OpenArm navy, xArm white, SO-101 yellow).
+   Regions are split by hairlines and the drawing is the only white surface. UI stays monochrome; blue means "selected", red means "collision". A robot's reach circle takes the colour of the real arm (OpenArm navy, xArm white, SO-101 yellow), and the robot itself is drawn as its 3D model seen from above.
    The plan follows drafting conventions: solid cut walls, lighter object lines, lightest dimension lines with 45° ticks. Stacks to one column under 1080px. */
 :root{
   --paper:#f4f5f7; --panel:#f9fafb; --sheet:#e9ebef; --floor:#ffffff;
@@ -23,6 +23,8 @@
   --reach-oa-fill:rgba(32,56,100,.06); --reach-oa-line:#203864;
   --reach-xa-fill:rgba(28,31,38,.03); --reach-xa-line:#ffffff; --reach-xa-case:#858c98; --reach-xa-ink:#858c98;
   --reach-so-fill:rgba(236,180,0,.11); --reach-so-line:#d6a100;
+  --ot-fill:#d3d7dd; --ot-line:#5f6672; --ot-hole:#99a0ab;
+  --bot-d:#2b303a; --bot-d-line:#9aa3b2; --bot-l:#f3f4f6; --bot-l-line:#5b6370; --bot-y:#f4c430; --bot-y-line:#8a6a00;
   --bad:#c93a3a; --bad-fill:rgba(201,58,58,.16); --ok:#2e7d4f;
   --stage3d:#dde0e5; --stage3d-hi:#e7e9ed; --stage-grid:#c2c7cf; --stage-axis:#9aa0ab;
   --font-ui:"Inter","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
@@ -45,6 +47,8 @@
     --reach-oa-fill:rgba(126,166,244,.08); --reach-oa-line:#8fb0f2;
     --reach-xa-fill:rgba(255,255,255,.045); --reach-xa-line:#f4f5f7; --reach-xa-case:transparent; --reach-xa-ink:#f4f5f7;
     --reach-so-fill:rgba(245,200,66,.09); --reach-so-line:#f2c744;
+    --ot-fill:#30353f; --ot-line:#a0a6b1; --ot-hole:#59606d;
+    --bot-d:#3d4555; --bot-d-line:#aeb6c4; --bot-l:#e9ebef; --bot-l-line:#4d5460; --bot-y:#f2c744; --bot-y-line:#6f5300;
     --bad:#f07070; --bad-fill:rgba(240,112,112,.22); --ok:#62c48a;
     --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492;
     color-scheme:dark;
@@ -66,6 +70,8 @@
   --reach-oa-fill:rgba(126,166,244,.08); --reach-oa-line:#8fb0f2;
   --reach-xa-fill:rgba(255,255,255,.045); --reach-xa-line:#f4f5f7; --reach-xa-case:transparent; --reach-xa-ink:#f4f5f7;
   --reach-so-fill:rgba(245,200,66,.09); --reach-so-line:#f2c744;
+  --ot-fill:#30353f; --ot-line:#a0a6b1; --ot-hole:#59606d;
+  --bot-d:#3d4555; --bot-d-line:#aeb6c4; --bot-l:#e9ebef; --bot-l-line:#4d5460; --bot-y:#f2c744; --bot-y-line:#6f5300;
   --bad:#f07070; --bad-fill:rgba(240,112,112,.22); --ok:#62c48a;
   --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492;
   color-scheme:dark;
@@ -274,6 +280,15 @@ details.sec[open] > summary{margin-bottom:10px}
 .item.cat-robot .body{fill:var(--robot-fill);stroke:var(--robot-line)}
 .item.cat-equip .body{fill:var(--equip-fill);stroke:var(--equip-line)}
 .item.cat-zone .body{fill:var(--zone-fill);stroke:var(--zone-line)}
+.item.t-otable .body{fill:var(--ot-fill);stroke:var(--ot-line)}
+.ot-hole{fill:var(--ot-hole)}
+.holes{pointer-events:none}
+.item.glyphed .body{fill:transparent;stroke:none} /* the footprint only shows (red) when it collides */
+.glyph path{stroke-linejoin:round}
+.glyph .gl{fill:var(--bot-l);stroke:var(--bot-l-line)}
+.glyph .gd{fill:var(--bot-d);stroke:var(--bot-d-line)}
+.g-so101 .gl{fill:var(--bot-y);stroke:var(--bot-y-line)}
+.rlbl{fill:var(--ink);pointer-events:none;paint-order:stroke;stroke:var(--floor);stroke-linejoin:round}
 .item .mark{fill:var(--robot-ink);stroke:none}
 .item .lbl{fill:var(--ink);pointer-events:none}
 .item .lbl.sub{fill:var(--ink-2);font-family:var(--font-data)!important}
@@ -469,6 +484,17 @@ const SPECS = {
   so101: 'SO-101 · 베이스 약 11 × 9 cm (공개 CAD 기준) · 리치 약 44 cm (공개 URDF 링크 길이 합산, 그리퍼 끝 기준).',
 };
 const TOP_TYPES = new Set(['openarm2', 'xarm7', 'so101', 'arm', 'pc']); // 책상·테이블 위에 올릴 수 있는 것
+/* 로봇을 올려 쓰는 테이블: [종류, 이름, 가로, 세로, 테이블 뒤쪽 끝에서 로봇 중심까지]. 로봇은 가로로 가운데, 세로로 끝에 둠.
+   OpenArm은 베이스 플레이트(깊이 25)를, xArm7은 베이스 뒤 커넥터(중심에서 9.2)를 테이블 끝에 맞춤. SO-101은 클램프로 물리므로 테이블 끝에 붙임 */
+const SEAT = { openarm2: ['otable', '광학 테이블', 80, 60, 12.5], xarm7: ['otable', '광학 테이블', 80, 60, 10], so101: ['table', 'SO-101 테이블', 140, 70, 5] };
+/* 위에서 본 로봇: 3D 모델을 준비 자세로 두고 링크마다 바닥에 비친 윤곽을 딴 것 (tools/build_topview.py). cm, 앞쪽이 −y, 베이스 중심이 원점.
+   box는 전체 범위 [x0, y0, x1, y1], parts는 아래에서 위 순서이고 첫 글자가 색(l 밝은 부품, d 어두운 부품) */
+const TOP = {
+  openarm2: { box: [-20.4, -41.6, 20.4, 12.5], parts: ["lM-9.5 -12.1L-9.1 -12.5L9.1 -12.5L9.5 -12.1L9.5 12.1L9.1 12.5L-9.1 12.5L-9.5 12.1Z","dM-17.8 -25.9L-16.9 -26.9L-15.2 -27.5L-13.9 -27.1L-12.9 -26.2L-12.4 -24.6L-12.9 -23L-13.6 -22.3L-14.5 -21.8L-16 -21.8L-16.9 -22.3L-17.6 -23L-18.1 -24.2Z","dM12.4 -24.6L12.9 -26.2L13.9 -27.1L15.2 -27.5L16.9 -26.9L17.8 -25.9L18.1 -24.2L17.6 -23L16.9 -22.3L16 -21.8L14.5 -21.8L13.6 -22.3L12.9 -23Z","dM-15.3 -41.5L-14.5 -41.5L-13.7 -39.3L-13.5 -38.5L-13.5 -36.6L-14.1 -34.8L-14.3 -34.5L-15.2 -40.5Z","dM13.5 -38.5L13.7 -39.3L14.5 -41.5L15.3 -41.5L15.2 -40.5L14.3 -34.5L14.1 -34.8L13.5 -36.6Z","dM-17 -38.5L-16.8 -39.3L-16.1 -41.5L-15.2 -41.5L-15.3 -40.5L-16.2 -34.5L-16.5 -34.9L-17 -36.6Z","dM15.2 -41.5L16.1 -41.5L16.8 -39.3L17 -38.5L17 -36.6L16.5 -34.9L16.2 -34.5L15.3 -40.5Z","lM-15.1 -41.6L-14.3 -41.5L-13.1 -40.3L-12.5 -39.1L-11.3 -35.7L-11.3 -33.6L-11.9 -31.1L-12.3 -30.3L-13 -29.9L-14.2 -30L-14.7 -30.4L-15 -31.4Z","lM11.3 -33.6L11.3 -35.7L12.5 -39.1L13.1 -40.3L14.3 -41.5L15.1 -41.6L15 -31.4L14.7 -30.4L14.2 -30L13 -29.9L12.3 -30.3L11.9 -31.1Z","lM-19.2 -33.6L-19.2 -35.7L-18 -39.1L-17.1 -40.7L-16.2 -41.5L-15.4 -41.6L-15.4 -40.5L-15.5 -31.4L-15.7 -30.6L-16.5 -30L-17.1 -29.8L-18.2 -30.3L-18.6 -31.1Z","lM15.4 -41.6L16.2 -41.5L17.1 -40.7L18 -39.1L19.2 -35.7L19.2 -33.6L18.6 -31.1L18.2 -30.3L17.1 -29.8L16.5 -30L15.7 -30.6L15.5 -31.4L15.4 -40.5Z","lM-19 -25.3L-16.9 -26.9L-16 -27.3L-15.1 -27.4L-13.6 -26.9L-11.5 -25.3L-11.5 -23.9L-13.6 -22.3L-14.8 -21.8L-15.7 -21.8L-16.9 -22.3L-19 -23.9Z","lM11.5 -25.3L13.6 -26.9L15.1 -27.4L16 -27.3L16.9 -26.9L19 -25.3L19 -23.9L16.9 -22.3L15.7 -21.8L14.8 -21.8L13.6 -22.3L11.5 -23.9Z","lM-18.8 -25.6L-11.7 -25.6L-11.7 -20.4L-12.2 -14L-13.5 -12.6L-15.8 -12.5L-17 -12.6L-18.3 -14L-18.8 -20.5Z","lM11.7 -25.6L18.8 -25.6L18.8 -20.5L18.3 -14L17 -12.6L14.7 -12.5L13.5 -12.6L12.2 -14L11.7 -20.4Z","lM-19.2 -12.3L-18.8 -12.7L-11.7 -12.7L-11.3 -12.3L-11.3 -0.1L-19.2 -0.2Z","lM11.3 -12.3L11.7 -12.7L18.8 -12.7L19.2 -12.3L19.2 -0.1L11.3 -0.2Z","dM-19.7 -8.6L-19.2 -12.4L-18.8 -12.7L-11.7 -12.6L-11.3 -12.3L-10.8 -8.7L-10.8 -1.1L-10.8 -0.5L-11.2 0L-19.3 0L-19.7 -0.7Z","dM10.8 -8.6L11.3 -12.4L11.7 -12.7L18.8 -12.6L19.2 -12.3L19.7 -8.7L19.7 -1.1L19.7 -0.5L19.3 0L11.2 0L10.8 -0.7Z","dM-18.8 -21.6L-18.6 -21.9L-11.9 -21.9L-11.7 -21.7L-11.7 -20.4L-12 -13.4L-12.3 -13.1L-18.2 -13.1L-18.5 -13.4L-18.8 -20.4Z","dM11.7 -21.7L11.9 -21.9L18.6 -21.9L18.8 -21.6L18.8 -20.4L18.5 -13.4L18.2 -13.1L12.3 -13.1L12 -13.4L11.7 -20.4Z","lM-19.1 -34.2L-17.6 -35.4L-17.2 -35.3L-12.7 -34.2L-11.2 -33.2L-10.6 -31.9L-10.9 -30.2L-13.7 -23.9L-14.3 -23.1L-15.1 -22.9L-16.2 -23.1L-16.8 -23.9L-20 -31.9Z","lM10.6 -31.9L11.2 -33.2L12.7 -34.2L17.2 -35.3L17.6 -35.4L19.1 -34.2L20 -31.9L16.8 -23.9L16.2 -23.1L15.4 -22.9L14.3 -23.1L13.7 -23.9L10.9 -30.2Z","dM-20.4 -31.6L-19.3 -34.5L-17.9 -35.6L-17.1 -35.6L-12.5 -34.1L-11 -32.9L-10.6 -31.2L-10.9 -30.1L-12.2 -28.8L-15.5 -27.4L-15.8 -27.4L-19.8 -29.8L-20.4 -30.5Z","dM11 -32.9L12.5 -34.1L17.1 -35.6L17.9 -35.6L19.3 -34.5L20.4 -31.6L20.4 -30.5L19.8 -29.8L15.8 -27.4L15.5 -27.4L12.2 -28.8L10.9 -30.1L10.6 -31.2Z","lM-19.3 -4.3L-18.5 -5.8L-12 -5.8L-12 -0.1L-12.3 0.3L-18.2 0.3L-18.5 0.2L-19.3 -1.7Z","lM11.2 -4.3L12 -5.8L18.5 -5.8L18.5 -0.1L18.2 0.3L12.3 0.3L12 0.2L11.2 -1.7Z","dM-18.5 -4.2L-18.1 -5L-17.4 -5.8L-15.8 -6.4L-15 -6.5L-12.2 -5.8L-12 -4.2L-12 0.4L-12.2 0.6L-14.6 1.2L-15.9 1.2L-18.2 0.6L-18.5 0.4Z","dM12 -4.2L12.4 -5L13.1 -5.8L14.7 -6.4L15.5 -6.5L18.3 -5.8L18.5 -4.2L18.5 0.4L18.3 0.6L15.9 1.2L14.6 1.2L12.3 0.6L12 0.4Z","lM-17.6 -3.5L-16.9 -4.4L-15.8 -5.1L-14.7 -5.1L-13.6 -4.4L-12.9 -3.5L-12.8 0.5L-13.2 0.7L-17.2 0.7L-17.7 0.5Z","lM12.9 -3.5L13.6 -4.4L14.7 -5.1L15.8 -5.1L16.9 -4.4L17.6 -3.5L17.7 0.5L17.2 0.7L13.2 0.7L12.8 0.5Z","lM-13.4 -5.3L-9.5 -5.3L-9.2 -5.2L-8.8 0.4L-8.8 1.1L-10.2 1.1L-14 -0.7Z","lM8.8 0.4L9.2 -5.2L9.5 -5.3L13.4 -5.3L14 -0.7L10.2 1.1L8.8 1.1Z","dM-9.2 -5L-9.1 -6.2L-8.3 -7.9L-4.2 -7.9L-3.1 -6.5L-3.1 0.2L-4.2 1.9L-8.3 1.9L-9.1 0.2L-9.2 -1Z","dM3.1 0.2L3.1 -6.5L4.2 -7.9L8.3 -7.9L9.1 -6.2L9.2 -5L9.2 -1L9.1 0.2L8.3 1.9L4.2 1.9Z","dM-20.1 -6.4L-18.6 -7.9L-13.2 -7.9L-9.5 -7.6L-9.3 -7.4L-9.3 1.1L-9.5 1.6L-10.3 1.6L-18.5 -0.2L-20.1 -1Z","dM9.3 -7.4L9.5 -7.6L13.2 -7.9L18.6 -7.9L20.1 -6.4L20.1 -1L18.5 -0.2L10.3 1.6L9.5 1.6L9.3 1.1Z","dM-20.1 0.3L-20.1 -0.1L-18.5 -4.3L-17.9 -5.2L-17.1 -6L-15.8 -6.4L-14.4 -6.4L-13.1 -5.7L-12.1 -4.4L-10.4 -0.1L-10.4 0.3L-11.9 1.8L-18.6 1.8Z","dM10.4 0.3L10.4 -0.1L12.1 -4.4L13.1 -5.7L14.4 -6.4L15.8 -6.4L17.1 -6L17.9 -5.2L18.5 -4.3L20.1 -0.1L20.1 0.3L18.6 1.8L11.9 1.8Z","lM-4.2 -7.9L-3 -7.9L-3 0L-4.2 0Z","lM3 -7.9L4.2 -7.9L4.2 0L3 0Z","dM-8 -7.3L-7.7 -7.9L-6.2 -9.3L-5.6 -9.5L5.6 -9.5L7.7 -7.9L8 -7.3L8 3.3L6.2 5.3L5.6 5.5L-5.6 5.5L-7.7 3.9L-8 3.3Z"] },
+  xarm7: { box: [-11.8, -40.6, 10.7, 12.3], parts: ["lM-5.8 -2.3L-3.1 -5.5L-0.9 -6.2L2.1 -6L3.7 -5.1L5.6 -2.9L6.3 -0.6L5.8 2.3L1.8 8L-0.5 9.2L-2.2 9L-5.6 2.9L-6.3 0.6Z","lM-7.5 -4.7L1.7 -4.8L3.2 -4.6L4.3 -3.9L5.1 -2.7L5.4 -1.7L5.7 0L5.5 1.7L4.9 3.2L3.7 4.4L2.5 4.8L1.7 4.8L-7.5 4.7Z","lM-11.8 -1.4L-11.2 -3.3L-9.4 -4.6L-7.5 -4.7L2.3 -0.1L3.6 1.4L4.2 4L3.8 8.3L2.3 9.9L-1.2 10.4L-9.5 8.2L-11 7.2L-11.8 4.3Z","lM-5.2 -37.5L-2 -40L0.4 -40.6L1.7 -40.3L2.7 -39.5L3.4 -38.4L3.7 -36.6L3.4 -35.3L2.7 -34.3L1.7 -33.5L0.4 -33.2L-2 -33.7L-5.2 -36.2Z","lM-6.9 6.9L-6.8 5.3L-5.7 2.9L-4.4 1.9L-2.6 1.2L-0.8 1L6.7 0.9L6.7 9.3L0.4 11.8L-1.3 12.3L-3.9 11.9L-5.2 11.1L-6.4 9.3Z","lM-5.8 -28.6L-5.6 -30.2L-3.6 -37.9L-2.4 -39.8L-0.8 -40.6L0.3 -40.6L2.3 -39.8L3.1 -38.9L3.7 -37.4L3.6 -35.9L0.4 -25.5L-4.2 -25.7L-5.3 -26.4Z","lM-4.2 -15.1L0.5 -33L6.1 -33L7.3 -32.6L8.2 -31.5L8.5 -30.6L8.6 -28.3L8.6 -23.6L8.2 -21.4L7.7 -20L4.2 -12L-0.4 -11.9L-4.2 -12Z","lM-4.2 -3.4L-4.2 -12L4.2 -12L9.4 -7.2L10.1 -6L10.6 -2.1L10.7 5.3L10.5 7.3L9.6 8.8L8.7 9.3L6.7 9.4L-3.4 -0.4L-4.1 -1.6Z"] },
+  so101: { box: [-5.5, -24.3, 5.5, 4.8], parts: ["dM-1.2 -2.9L-0.9 -3.2L0.9 -3.2L1.2 -2.9L1.2 1.1L1 1.3L-1 1.3L-1.2 1.1Z","lM-5.5 -0.8L-3.3 -4.6L-3.1 -4.8L3.1 -4.8L3.3 -4.6L5.5 -0.8L5.5 0.2L4.3 3.8L2.6 4.8L-2.5 4.8L-4.3 3.8L-5.5 0.2Z","lM-2.6 -6.5L-2.4 -7L-1.8 -7.2L1.8 -7.2L2.5 -7L2.6 -6.4L2.6 -4.5L2.5 -4.1L1 -1.5L0 -1L-1 -1.5L-2.9 -4.2Z","dM-2 -6.1L-1.6 -6.5L1.5 -6.5L1.8 -6.2L2 -5L1.8 -4.2L1.5 -4L-1.6 -4L-2 -4.4Z","lM-2.2 -21.7L-0.5 -24.1L0.1 -24.3L0.8 -23.9L2.2 -22.1L2.6 -21.5L2.5 -19.5L2.2 -19.4L-2.2 -19.6L-2.3 -19.7Z","dM-1.7 -21.6L-1.3 -21.9L1.6 -21.8L1.9 -21.4L2 -18.7L1.7 -17.4L1.4 -16.9L-1.5 -17L-1.8 -17.3L-1.9 -20.4Z","lM-2.4 -19.4L-2.1 -20.2L-0.4 -22.3L0.4 -22.3L2.3 -20.1L2.9 -19L2.8 -17.9L2.3 -16.7L1.4 -15.1L1.1 -14.9L-1.4 -15L-1.7 -15.2L-2.4 -16.9Z","dM-3.5 -18.2L-2.9 -18.4L0.7 -18.3L1 -18.1L1 -14.9L0.7 -14.7L-0.8 -14.6L-3.3 -14.6L-3.5 -14.9Z","lM-3.5 -18.7L-1.9 -19L0.9 -18.5L1.8 -18L2.5 -17.4L2.7 -16.9L2.7 -13.5L2.2 -13L-2.2 -13L-2.6 -13.2L-3.5 -14.4Z","dM-1.8 -15.2L-1.5 -15.5L1.4 -15.5L1.8 -15.2L2 -14L1.7 -10.7L1.4 -10.5L-1.5 -10.5L-1.8 -11.1L-2 -12.6Z","lM-3.5 -4.8L-3.1 -6.1L-2.7 -6.4L2.7 -6.4L3.2 -5.9L3.2 -1.1L2.5 2.7L2 3L-2 3L-2.5 2.7L-3.6 -3.4Z","lM-3.4 -3.3L-3 -12.1L-2.4 -13.1L-1.8 -13.2L1.9 -13.1L2.6 -12.8L3 -5.2L3 -0.5L2.5 0L-1.8 0L-2.3 -0.3L-3.4 -2.1Z","dM-2 -0.5L-1.8 -2.2L-1.5 -2.6L1.4 -2.6L1.8 -2.2L2 -1L1.7 2.1L1.4 2.3L-1.5 2.3L-1.8 1.8Z"] },
+};
+for (const g of Object.values(TOP)) g.svg = g.parts.map(q => `<path class="g${q[0]}" d="${q.slice(1)}"/>`).join('');
 const CATALOG = [
   { group: '로봇', items: [
     { type: 'openarm2', name: 'OpenArm 2.0', w: 41,   d: 25,   reach: 60.6, armOff: 15.25, cat: 'robot' },
@@ -478,6 +504,7 @@ const CATALOG = [
   { group: '가구', items: [
     { type: 'desk',  name: '책상',        w: 160, d: 80, reach: 0, cat: 'furn' },
     { type: 'table', name: '작업 테이블', w: 120, d: 60, reach: 0, cat: 'furn' },
+    { type: 'otable', name: '광학 테이블', w: 80, d: 60, reach: 0, cat: 'furn' },
     { type: 'shelf', name: '선반',        w: 90,  d: 40, reach: 0, cat: 'furn' },
     { type: 'chair', name: '의자',        w: 55,  d: 55, reach: 0, cat: 'furn', round: true, soft: true },
   ]},
@@ -504,7 +531,7 @@ const norm = a => ((a % 360) + 360) % 360;
 
 const defaultRoom = () => ({ ...ROOM });
 function defaultArms() {
-  // 보유 로봇팔 4대. 위치는 임시로 방 가운데에 세워 둔 것
+  // 보유 로봇팔 4대. 위치는 임시로 방 가운데에 둔 것. 테이블은 seatRobots가 밑에 깔아 줌
   const base = { cat: 'robot', rot: 0, soft: false, lock: false };
   return [
     { ...base, id: 'openarm', type: 'openarm2', name: 'OpenArm 2.0', x: 173.5, y: 300, w: 41, d: 25, reach: 60.6, armOff: 15.25, round: false },
@@ -515,11 +542,27 @@ function defaultArms() {
 }
 function defaultItems(room) {
   // 계획: 책상 2개를 실험실 끝(창문 쪽) 양쪽 벽에 하나씩, 창문에서 30cm
+  const arms = defaultArms().map(cleanItem);
   return [
     { id: 'desk-l', type: 'desk', name: '책상 1', cat: 'furn', x: 40, y: 110, w: 160, d: 80, rot: 90, reach: 0, round: false, soft: false, lock: false },
     { id: 'desk-r', type: 'desk', name: '책상 2', cat: 'furn', x: room.w - 40, y: 110, w: 160, d: 80, rot: 90, reach: 0, round: false, soft: false, lock: false },
-    ...defaultArms(),
-  ].map(cleanItem);
+  ].map(cleanItem).concat(seatRobots(arms), arms);
+}
+function seatRobots(items) { // 테이블 없이 서 있는 로봇 밑에 깔 테이블을 만들어 돌려줌. 로봇 자리는 그대로 두고, 나란히 선 SO-101 두 대는 한 테이블에
+  const out = [], seated = it => items.concat(out).some(o => isSurface(o) && inPoly(poly(o), it.x, it.y));
+  let n = items.filter(o => o.type === 'otable').length;
+  for (const it of items) {
+    const sp = SEAT[it.type]; if (!sp || seated(it)) continue;
+    let [type, name, w, d, back] = sp, x = it.x, y = it.y;
+    const r = rad(it.rot), fx = Math.sin(r), fy = -Math.cos(r); // 로봇이 보는 방향
+    if (it.type === 'so101') {
+      const mate = items.find(o => o !== it && o.type === 'so101' && !seated(o) && Math.abs(norm(o.rot - it.rot + 180) - 180) < 1
+        && Math.abs((o.x - it.x) * fx + (o.y - it.y) * fy) < 2 && Math.hypot(o.x - it.x, o.y - it.y) <= 110);
+      if (mate) { x = (it.x + mate.x) / 2; y = (it.y + mate.y) / 2; w = Math.max(w, Math.hypot(mate.x - it.x, mate.y - it.y) + 40); }
+    } else name += ' ' + ++n;
+    out.push(cleanItem({ id: 'tb-' + it.id, type, name, cat: 'furn', x: r2(x + fx * (d / 2 - back)), y: r2(y + fy * (d / 2 - back)), w, d, rot: it.rot }));
+  }
+  return out;
 }
 function cleanItem(o) {
   o = o && typeof o === 'object' ? o : {};
@@ -539,8 +582,9 @@ function cleanState(s) {
   const room = defaultRoom(); // 방은 고정이므로 저장된 값은 쓰지 않음
   const seen = new Set();
   const items = (Array.isArray(s.items) ? s.items : []).slice(0, 200).map(cleanItem);
-  if (s.v !== 2 && !items.some(it => SPECS[it.type])) items.push(...defaultArms().map(cleanItem)); // 이전 버전에서 저장한 배치에는 보유 로봇팔이 없음
+  if (!(s.v >= 2) && !items.some(it => SPECS[it.type])) items.push(...defaultArms().map(cleanItem)); // 이전 버전에서 저장한 배치에는 보유 로봇팔이 없음
   for (const it of items) if (it.type === 'openarm2' && it.w === 45 && it.d === 25 && it.armOff === 17.5) { it.w = 41; it.armOff = 15.25; } // 사진 추정값 → 공식 모델 치수
+  if (!(s.v >= 3)) items.push(...seatRobots(items)); // v2까지는 로봇이 테이블 없이 서 있었음
   items.forEach(it => { while (seen.has(it.id)) it.id = uid(); seen.add(it.id); });
   return { room, items };
 }
@@ -586,8 +630,20 @@ function swingPoly(R) {
   for (let k = 0; k <= 8; k++) { const t = k / 8 * Math.PI / 2; P.push([hx + dir * Math.cos(t) * R.doorW, R.d - Math.sin(t) * R.doorW]); }
   return P;
 }
+const inPoly = (P, x, y) => {
+  let c = false;
+  for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [xi, yi] = P[i], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; }
+  return c;
+};
+const boxHit = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+const boxJoin = (a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) });
+function glyphBox(it) { // 위에서 본 로봇 그림이 차지하는 범위
+  const g = TOP[it.type]; if (!g) return null;
+  const [x0, y0, x1, y1] = g.box, r = rad(it.rot), c = Math.cos(r), s = Math.sin(r);
+  return bbox([[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => [it.x + x * c - y * s, it.y + x * s + y * c]));
+}
 const solid = it => it.cat !== 'zone' && !it.soft;
-const isSurface = it => it.type === 'desk' || it.type === 'table';
+const isSurface = it => it.type === 'desk' || it.type === 'table' || it.type === 'otable';
 const isTop = it => TOP_TYPES.has(it.type);
 const collides = (a, b) => solid(a) && solid(b) && !((isTop(a) && isSurface(b)) || (isTop(b) && isSurface(a)));
 const layer = it => it.cat === 'zone' ? 0 : isSurface(it) ? 1 : isTop(it) ? 3 : 2;
@@ -634,7 +690,7 @@ const pointers = new Map();
 
 const svg = $('plan'), stage = $('stage');
 const selItem = () => state.items.find(o => o.id === ui.sel) || null;
-const snapshot = () => JSON.stringify({ v: 2, room: state.room, items: state.items });
+const snapshot = () => JSON.stringify({ v: 3, room: state.room, items: state.items });
 
 function saveLocal() { try { localStorage.setItem(LS_STATE, snapshot()); } catch (e) {} }
 function saveUi() { try { localStorage.setItem(LS_UI, JSON.stringify({ snap: ui.snap, reach: ui.reach })); } catch (e) {} }
@@ -693,7 +749,7 @@ function render() {
   svg.setAttribute('viewBox', `${view.cx - cw / 2 / s} ${view.cy - ch / 2 / s} ${cw / s} ${ch / s}`);
   const R = state.room, W = R.w, D = R.d, T = WALL_T;
   const an = lastAn = analyze();
-  const fs = px(10.5);
+  const fs = px(10.5), holes = s * 2.5 >= 2.4; // 광학 테이블 탭 구멍(25 mm 간격)은 점으로 보일 만큼 확대됐을 때만
   let h = '';
 
   h += `<defs>
@@ -702,6 +758,7 @@ function render() {
     <pattern id="g100" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" class="g-major" stroke-width="${px(1.6)}"/></pattern>
     <pattern id="hatch" width="${px(9)}" height="${px(9)}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="${px(9)}" class="hatch-line" stroke-width="${px(1.6)}"/></pattern>
     <clipPath id="roomclip"><rect x="0" y="0" width="${W}" height="${D}"/></clipPath>
+    ${holes ? `<pattern id="holes" width="2.5" height="2.5" patternUnits="userSpaceOnUse"><circle class="ot-hole" cx="1.25" cy="1.25" r="${Math.max(0.3, px(0.5))}"/></pattern>` : ''}
   </defs>`;
 
   // floor + grid (10 cm / 50 cm / 1 m)
@@ -716,11 +773,30 @@ function render() {
     sweep = it && it.reach > 0 && ui.reach && !stillMotion() ? { id: it.id, t0: performance.now() } : null;
   }
   const order = state.items.map((it, i) => i).sort((a, b) => layer(state.items[a]) - layer(state.items[b]));
-  let zones = '', bodies = '', reach = '', sw = '';
+  const gb = state.items.map(glyphBox), under = state.items.map((it, i) => gb[i] ? state.items.findIndex((o, j) => isSurface(o) && inPoly(an[j].poly, it.x, it.y)) : -1); // 로봇이 올라앉은 테이블
+  const placed = [];
+  const robotLabel = (it, i) => { // 로봇 이름표: 로봇과 그 테이블을 한 덩어리로 보고 바깥에 붙임. 로봇 뒤쪽이 먼저, 방 밖이거나 다른 물체에 걸리면 옆, 앞 순서
+    const U = under[i] >= 0 ? boxJoin(gb[i], an[under[i]].bb) : gb[i], lw = textEm(it.name) * fs, r = rad(it.rot), bx = -Math.sin(r), by = Math.cos(r);
+    const mx = clamp(it.x, lw / 2 + px(2), W - lw / 2 - px(2)), my = clamp(it.y + fs * 0.36, fs, D - fs * 0.35); // 벽 가까이에서는 방 안으로 밀어 넣음
+    const cand = { d: [mx, U.y1 + fs * 1.3, 'middle'], u: [mx, U.y0 - fs * 0.55, 'middle'], l: [U.x0 - fs * 0.5, my, 'end'], r: [U.x1 + fs * 0.5, my, 'start'] };
+    const box = k => { const [x, y, a] = cand[k], x0 = a === 'middle' ? x - lw / 2 : a === 'end' ? x - lw : x; return { x0, x1: x0 + lw, y0: y - fs * 0.95, y1: y + fs * 0.3 }; };
+    const back = Math.abs(by) >= Math.abs(bx) ? (by > 0 ? 'd' : 'u') : (bx > 0 ? 'r' : 'l');
+    const sides = back === 'd' || back === 'u' ? (it.x - U.x0 <= U.x1 - it.x ? ['l', 'r'] : ['r', 'l']) : (it.y - U.y0 <= U.y1 - it.y ? ['u', 'd'] : ['d', 'u']);
+    const tries = [back, ...sides, { d: 'u', u: 'd', l: 'r', r: 'l' }[back]];
+    const inRoom = b => b.x0 >= 0 && b.y0 >= 0 && b.x1 <= W && b.y1 <= D;
+    const free = b => !placed.some(q => boxHit(q, b)) && !state.items.some((o, k) => k !== i && k !== under[i] && o.cat !== 'zone' && boxHit(gb[k] ? boxJoin(gb[k], an[k].bb) : an[k].bb, b));
+    const k = tries.find(k => inRoom(box(k)) && free(box(k))) || tries.find(k => inRoom(box(k))) || back;
+    placed.push(box(k));
+    return `<text class="rlbl" x="${r2(cand[k][0])}" y="${r2(cand[k][1])}" font-size="${fs}" stroke-width="${px(3)}" text-anchor="${cand[k][2]}">${esc(it.name)}</text>`;
+  };
+  let zones = '', bodies = '', reach = '', sw = '', labels = '';
   for (const i of order) {
     const it = state.items[i], a = an[i];
-    const g = itemSvg(it, a, px, fs);
+    const lw = textEm(it.name) * fs / 2, mid = { x0: it.x - lw, x1: it.x + lw, y0: it.y - fs * 1.3, y1: it.y + fs * 1.3 };
+    const hidden = isSurface(it) && under.some((j, k) => j === i && boxHit(gb[k], mid)); // 올려 둔 로봇에 가려지는 테이블 이름은 뺌
+    const g = itemSvg(it, a, px, fs, holes, hidden);
     if (it.cat === 'zone') zones += g; else bodies += g;
+    if (gb[i]) labels += robotLabel(it, i);
     if (ui.reach && it.reach > 0) {
       const rr = rad(it.rot), offs = it.armOff > 0 ? [-it.armOff, it.armOff] : [0]; // 양팔은 어깨마다 하나씩
       const rc = REACH_CLS[it.type] || '', dash = `stroke-dasharray="${px(4)} ${px(3)}"`;
@@ -741,7 +817,7 @@ function render() {
     }
   }
   if (sweep && !sw) sweep = null; // 다 돌았거나 반경 표시를 끔
-  h += zones + `<g clip-path="url(#roomclip)">${reach}${sw}</g>` + bodies;
+  h += zones + `<g clip-path="url(#roomclip)">${reach}${sw}</g>` + bodies + labels;
 
   // walls, window, door
   h += `<path class="wall" fill-rule="evenodd" d="M${-T} ${-T}H${W + T}V${D + T}H${-T}Z M0 0V${D}H${W}V0Z"/>`;
@@ -805,9 +881,9 @@ function render() {
   if (sweep) schedule();
 }
 
-function itemSvg(it, a, px, fs) {
-  const hw = it.w / 2, hd = it.d / 2;
-  const cls = ['item', 'cat-' + it.cat, a.bad ? 'bad' : '', it.lock ? 'locked' : ''].join(' ');
+function itemSvg(it, a, px, fs, holes, noLabel) {
+  const hw = it.w / 2, hd = it.d / 2, G = TOP[it.type];
+  const cls = ['item', 'cat-' + it.cat, 't-' + it.type, G ? 'glyphed' : '', a.bad ? 'bad' : '', it.lock ? 'locked' : ''].join(' ');
   let g = `<g class="${cls}" data-id="${it.id}" transform="translate(${it.x} ${it.y}) rotate(${it.rot})">`;
   const dash = it.cat === 'zone' ? ` stroke-dasharray="${px(7)} ${px(4)}"` : '';
   if (it.round) {
@@ -815,8 +891,11 @@ function itemSvg(it, a, px, fs) {
   } else {
     g += `<rect class="body" x="${-hw}" y="${-hd}" width="${it.w}" height="${it.d}" rx="${Math.min(1, hw, hd)}" stroke-width="${px(1.2)}"${dash}/>`;
     if (it.cat === 'zone') g += `<rect class="hatch" x="${-hw}" y="${-hd}" width="${it.w}" height="${it.d}" fill="url(#hatch)"/>`;
+    if (holes && it.type === 'otable') g += `<rect class="holes" x="${-hw}" y="${-hd}" width="${it.w}" height="${it.d}" fill="url(#holes)"/>`;
   }
   if (Math.min(it.w, it.d) < px(26)) g += `<circle class="hit-pad" r="${px(13)}"/>`; // 작은 물체도 잡기 쉽게
+  if (G) return g + `<g class="glyph g-${it.type}" stroke-width="${Math.min(px(0.9), 0.45)}">${G.svg}</g></g>`; // 팔이 뻗은 쪽이 앞. 이름표는 render가 바깥에 붙임
+  if (noLabel) return g + '</g>';
   if (it.cat === 'robot') { // heading marker on the front edge
     const t = clamp(Math.min(hw, hd) * 0.3, 2, 7), m = Math.min(2, hd * 0.2);
     g += `<path class="mark" d="M0 ${-hd + m}l${t} ${t * 1.4}h${-2 * t}z" pointer-events="none"/>`;
@@ -874,7 +953,8 @@ function syncInspector() {
   for (const [k, v] of rows) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); }
   const ul = $('f-warns'); ul.textContent = '';
   for (const w of a.why) { const li = document.createElement('li'); li.textContent = w; ul.append(li); }
-  const sp = $('f-spec'); sp.hidden = !isTop(it); sp.textContent = isTop(it) ? '책상·테이블 위에 올려도 겹침으로 보지 않습니다.' : '';
+  const sp = $('f-spec'); sp.hidden = !(isTop(it) || isSurface(it));
+  sp.textContent = isTop(it) ? '책상·테이블 위에 올려도 겹침으로 보지 않습니다.' : isSurface(it) ? '옮기거나 돌리면 위에 올린 로봇과 장비도 함께 움직입니다.' : '';
 }
 function bindNum(el, fn) {
   el.addEventListener('input', () => { const it = selItem(), v = parseFloat(el.value); if (!it || !Number.isFinite(v)) return; fn(it, v); schedule(); });
@@ -884,10 +964,10 @@ F.name.addEventListener('input', () => { const it = selItem(); if (it) { it.name
 F.name.addEventListener('change', () => commit());
 bindNum(F.w, (it, v) => { it.w = clamp(v, 2, 2000); });
 bindNum(F.d, (it, v) => { it.d = clamp(v, 2, 2000); });
-bindNum(F.rot, (it, v) => { it.rot = norm(v); });
+bindNum(F.rot, (it, v) => carry(it, () => { it.rot = norm(v); }));
 bindNum(F.reach, (it, v) => { it.reach = clamp(v, 0, 1000); });
-bindNum(F.left, (it, v) => { it.x = r2(it.x + v - bbox(poly(it)).x0); });
-bindNum(F.top, (it, v) => { it.y = r2(it.y + v - bbox(poly(it)).y0); });
+bindNum(F.left, (it, v) => carry(it, () => { it.x = r2(it.x + v - bbox(poly(it)).x0); }));
+bindNum(F.top, (it, v) => carry(it, () => { it.y = r2(it.y + v - bbox(poly(it)).y0); }));
 F.lock.addEventListener('change', () => { const it = selItem(); if (it) { it.lock = F.lock.checked; commit(); schedule(); } });
 $('b-rot').addEventListener('click', () => rotateSel(90));
 $('b-dup').addEventListener('click', duplicateSel);
@@ -895,6 +975,18 @@ $('b-del').addEventListener('click', deleteSel);
 $('olist').addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (b) { ui.sel = b.dataset.pick; schedule(); } });
 
 /* ───────── editing operations ───────── */
+/* 테이블을 옮기거나 돌리면 위에 올린 것(중심이 테이블 안에 있는 로봇·장비)이 함께 움직임. riders로 잡아 두고, 테이블이 움직인 뒤 settle로 따라 붙임 */
+function riders(it) {
+  if (!isSurface(it)) return [];
+  const P = poly(it), r = rad(it.rot), c = Math.cos(r), s = Math.sin(r);
+  return state.items.filter(o => o !== it && isTop(o) && !o.lock && inPoly(P, o.x, o.y))
+    .map(o => ({ o, lx: (o.x - it.x) * c + (o.y - it.y) * s, ly: (o.y - it.y) * c - (o.x - it.x) * s, dr: o.rot - it.rot }));
+}
+function settle(it, rs) {
+  const r = rad(it.rot), c = Math.cos(r), s = Math.sin(r);
+  for (const q of rs) { q.o.x = r2(it.x + q.lx * c - q.ly * s); q.o.y = r2(it.y + q.lx * s + q.ly * c); q.o.rot = norm(it.rot + q.dr); }
+}
+function carry(it, fn) { const rs = riders(it); fn(); settle(it, rs); }
 function halfExt(it) { const b = bbox(poly({ ...it, x: 0, y: 0 })); return { hx: (b.x1 - b.x0) / 2, hy: (b.y1 - b.y0) / 2 }; }
 function placeSnapped(it, nx, ny) {
   const R = state.room, g = ui.snap, { hx, hy } = halfExt(it);
@@ -928,14 +1020,14 @@ function addFromCatalog(def) {
   state.items.push(it); ui.sel = it.id; commit(); schedule();
   if (!ok) toast('빈자리가 없어 겹친 채로 놓았습니다. 옮겨서 자리를 잡아 주세요.');
 }
-function rotateSel(deg) { const it = selItem(); if (!it || it.lock) return; it.rot = norm(it.rot + deg); commit(); schedule(); }
+function rotateSel(deg) { const it = selItem(); if (!it || it.lock) return; carry(it, () => { it.rot = norm(it.rot + deg); }); commit(); schedule(); }
 function deleteSel() { const it = selItem(); if (!it) return; state.items = state.items.filter(o => o !== it); ui.sel = null; commit(); schedule(); }
 function duplicateSel() {
   const it = selItem(); if (!it) return;
   const c = cleanItem({ ...it, id: uid(), name: it.name.replace(/\s*\d+$/, '') + ' ' + (state.items.filter(o => o.type === it.type).length + 1), lock: false });
   freeSpot(c, it.x + 20, it.y + 20); state.items.push(c); ui.sel = c.id; commit(); schedule();
 }
-function nudge(dx, dy) { const it = selItem(); if (!it || it.lock) return; it.x = r2(it.x + dx); it.y = r2(it.y + dy); schedule(); clearTimeout(nudge.t); nudge.t = setTimeout(commit, 400); }
+function nudge(dx, dy) { const it = selItem(); if (!it || it.lock) return; carry(it, () => { it.x = r2(it.x + dx); it.y = r2(it.y + dy); }); schedule(); clearTimeout(nudge.t); nudge.t = setTimeout(commit, 400); }
 
 /* ───────── pointer interaction ───────── */
 const snapPt = w => ui.snap ? { x: Math.round(w.x / ui.snap) * ui.snap, y: Math.round(w.y / ui.snap) * ui.snap } : { x: r2(w.x), y: r2(w.y) };
@@ -954,10 +1046,10 @@ svg.addEventListener('pointerdown', e => {
   const w = toWorld(e.clientX, e.clientY);
   const rotEl = e.target.closest('[data-role="rot"]'), itEl = e.target.closest('[data-id]');
   if (ui.measure) { const p = snapPt(w); ui.m = { a: p, b: p }; action = { type: 'measure' }; }
-  else if (rotEl && selItem()) action = { type: 'rot', moved: false };
+  else if (rotEl && selItem()) action = { type: 'rot', moved: false, riders: riders(selItem()) };
   else if (itEl) {
     ui.sel = itEl.dataset.id; const it = selItem();
-    action = it && !it.lock ? { type: 'drag', dx: w.x - it.x, dy: w.y - it.y, sx: e.clientX, sy: e.clientY, moved: false } : { type: 'none' };
+    action = it && !it.lock ? { type: 'drag', dx: w.x - it.x, dy: w.y - it.y, sx: e.clientX, sy: e.clientY, moved: false, riders: riders(it) } : { type: 'none' };
   } else action = { type: 'pan', sx: e.clientX, sy: e.clientY, cx: view.cx, cy: view.cy, moved: false };
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
   e.preventDefault(); schedule();
@@ -975,11 +1067,11 @@ svg.addEventListener('pointermove', e => {
   } else if (action.type === 'drag') {
     const it = selItem(); if (!it) return;
     if (!action.moved && Math.hypot(e.clientX - action.sx, e.clientY - action.sy) < 3) return;
-    action.moved = true; placeSnapped(it, w.x - action.dx, w.y - action.dy);
+    action.moved = true; placeSnapped(it, w.x - action.dx, w.y - action.dy); settle(it, action.riders);
   } else if (action.type === 'rot') {
     const it = selItem(); if (!it) return;
     let a = Math.atan2(w.y - it.y, w.x - it.x) * 180 / Math.PI + 90; const st = ui.snap ? 15 : 1;
-    it.rot = norm(Math.round(a / st) * st); action.moved = true;
+    it.rot = norm(Math.round(a / st) * st); action.moved = true; settle(it, action.riders);
   } else if (action.type === 'pan') {
     const dx = e.clientX - action.sx, dy = e.clientY - action.sy;
     if (!action.moved && Math.hypot(dx, dy) < 4) return;
@@ -1068,7 +1160,7 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = fals
 const shared = { ref: null, live: false, dead: false, readonly: false, dirty: false, writing: false, lastRev: '', seenRev: '', pending: null, t: 0, retries: 0 };
 function adoptRemote(data) {
   shared.seenRev = data.rev; shared.pending = null;
-  const next = cleanState(data), s = JSON.stringify({ v: 2, room: next.room, items: next.items });
+  const next = cleanState(data), s = JSON.stringify({ v: 3, room: next.room, items: next.items });
   if (s === snapshot()) return;
   state = next; if (!selItem()) ui.sel = null;
   hist = hist.slice(0, hi + 1); hist.push(s); hi = hist.length - 1;
@@ -1083,7 +1175,7 @@ async function writeShared() {
   if (shared.writing || !shared.dirty || shared.dead || shared.readonly) return;
   shared.writing = true; shared.dirty = false;
   const rev = uid() + Date.now().toString(36); shared.lastRev = rev;
-  const body = { v: 2, rev, at: new Date().toISOString(), room: { ...state.room }, items: state.items.map(o => ({ ...o })) };
+  const body = { v: 3, rev, at: new Date().toISOString(), room: { ...state.room }, items: state.items.map(o => ({ ...o })) };
   let delay = 300;
   try { await shared.ref.set(body); shared.retries = 0; }
   catch (e) {
@@ -1212,7 +1304,7 @@ const MODELS = {
     idle: [['shoulder_lift', -0.05, 0], ['elbow_flex', -0.08, 0], ['wrist_flex', 0.07, 0.5]],
   },
 };
-const mv = { shown: null, preview: null, ready: null, failed: false, cache: new Map(), cur: null, q: {}, sl: {}, fit: null, raf: 0, anim: 0 };
+const mv = { shown: null, preview: null, ready: null, failed: false, cache: new Map(), cur: null, q: {}, sl: {}, fit: null, raf: 0, anim: 0, home: 0, pull: null };
 const mvEl = { box: $('mv'), view: $('mv-view'), gal: $('gal'), stage: $('mv-stage'), msg: $('mv-msg'), poses: $('mv-poses'), joints: $('mv-joints'), specs: $('mv-specs'), links: $('mv-links'), title: $('mv-title'), tag: $('mv-tag'),
   work: $('work'), big: $('mv-big'), bigIco: $('mv-big-ico'), back: $('mv-back'), mirror: $('mv-mirror'), mirrorWrap: $('mv-mirror-wrap'), reset: $('mv-reset') };
 const mvMsg = t => { mvEl.msg.textContent = t; mvEl.msg.hidden = !t; };
@@ -1224,6 +1316,7 @@ function mvDraw() { if (mv.raf || !mv.renderer || !mv.cur) return; mv.raf = requ
 
 /* camera: one fixed viewing direction; the distance is whatever keeps the model in frame for the current aspect ratio */
 const VIEW_DIR = [1.15, 0.62, 1.25], VIEW_FOV = 30, VIEW_ROOM = 1.3; // VIEW_ROOM: 자세를 바꿔도 잘리지 않게 두는 여유
+const POSE_FILL = 0.9; // 자세 버튼으로 시점을 맞출 때 로봇이 화면에서 차지하는 최대 비율
 function mvFitDist(size, aspect) { // 수직축으로 돌려도 화면 안에 들어오는 거리
   const rh = Math.hypot(size.x, size.z) / 2, el = Math.asin(VIEW_DIR[1] / Math.hypot(...VIEW_DIR)), tv = Math.tan(rad(VIEW_FOV / 2));
   return Math.max((size.y / 2 * Math.cos(el) + rh * Math.sin(el)) / tv, rh / (tv * aspect)) + rh;
@@ -1239,7 +1332,9 @@ function mvResize() {
   mv.renderer.setSize(w, h, false); mv.sized = true; mv.camera.aspect = w / h; mv.camera.updateProjectionMatrix();
   if (mv.fit && Math.abs(mv.fit.aspect - w / h) > 0.01) { // 창 비율이 바뀌면 보던 방향은 두고 거리만 맞춤
     const k = mvFitDist(mv.fit.size, w / h) / mvFitDist(mv.fit.size, mv.fit.aspect), t = mv.controls.target;
-    mv.camera.position.sub(t).multiplyScalar(k).add(t); mv.fit.aspect = w / h; mvLimits(); mv.controls.update();
+    mv.camera.position.sub(t).multiplyScalar(k).add(t); mv.fit.aspect = w / h; mv.home *= k; mvLimits();
+    const p = mv.pull; if (p) { p.base *= k; p.at *= k; if (p.at > p.base * 1.001 || !p.tat.equals(p.tbase)) mvView(...mvFor(mv.q, p.tbase, p.base)); } // 자세에 맞춰 둔 시점이면 새 비율로 다시 맞춤
+    mv.controls.update();
   }
   mvDraw();
 }
@@ -1307,19 +1402,58 @@ function mvApply(q) {
   }
 }
 const mvPoseMark = i => [...mvEl.poses.children].forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+function mvSpan(q, tgt) { // 자세 q를 지금 보는 방향 그대로, tgt를 중심에 두고 볼 때: 화면에 다 들어오는 카메라 거리 need와 화면 축으로 치우친 정도 (cx, cy)
+  const T = window.THREE, m = mv.cur, cam = mv.camera, v = new T.Vector3();
+  mvSet(m, q); m.root.updateMatrixWorld(true); cam.updateMatrixWorld();
+  const e = cam.matrixWorld.elements, tv = Math.tan(rad(VIEW_FOV / 2)) * POSE_FILL, th = tv * cam.aspect;
+  let need = 0, x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  m.root.traverse(o => { // 부품마다 경계 상자의 꼭짓점 8개를 화면 가로(x)·세로(y)·카메라 쪽(z) 축으로 잼
+    if (!o.isMesh) return;
+    const g = o.geometry; if (!g.boundingBox) g.computeBoundingBox();
+    const b = g.boundingBox;
+    for (let i = 0; i < 8; i++) {
+      v.set(i & 1 ? b.max.x : b.min.x, i & 2 ? b.max.y : b.min.y, i & 4 ? b.max.z : b.min.z).applyMatrix4(o.matrixWorld).sub(tgt);
+      const x = v.x * e[0] + v.y * e[1] + v.z * e[2], y = v.x * e[4] + v.y * e[5] + v.z * e[6], z = v.x * e[8] + v.y * e[9] + v.z * e[10];
+      need = Math.max(need, z + Math.abs(x) / th, z + Math.abs(y) / tv);
+      x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    }
+  });
+  mvSet(m, mv.q);
+  return { need, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 };
+}
+function mvFor(q, tb, db) { // 기준 시점(중심 tb, 거리 db)에서 자세 q를 보려면: 다 들어오면 그대로, 아니면 중심을 자세 한가운데로 옮기고 그래도 모자란 만큼만 물러남
+  if (db < mv.home * 0.9) return [tb, db]; // 처음보다 가까이 당겨서 보는 중이면 건드리지 않음
+  const a = mvSpan(q, tb); if (a.need <= db) return [tb, db];
+  const e = mv.camera.matrixWorld.elements, t = tb.clone();
+  t.x += e[0] * a.cx + e[4] * a.cy; t.y += e[1] * a.cx + e[5] * a.cy; t.z += e[2] * a.cx + e[6] * a.cy;
+  return [t, Math.max(db, mvSpan(q, t).need)];
+}
+function mvView(t, d) { // 보는 방향은 두고 중심과 거리만
+  const cam = mv.camera.position, tg = mv.controls.target, dir = cam.clone().sub(tg).normalize();
+  tg.copy(t); cam.copy(t).addScaledVector(dir, d);
+  if (mv.pull) { mv.pull.at = d; mv.pull.tat.copy(t); }
+}
 function mvPose(i, animate) {
   const def = MODELS[mv.shown], m = mv.cur; if (!def || !m) return;
   mvPoseMark(i);
   const from = mv.q, to = def.poses[i][1];
   cancelAnimationFrame(mv.anim);
-  if (!animate || stillMotion()) { mvApply({ ...to }); mvDraw(); return; }
+  /* 자세가 화면 밖으로 나가면 시점을 그 자세에 맞추고(mvFor), 들어오는 자세로 바꾸면 맞추기 전 시점(base)으로 돌아옴.
+     맞춘 뒤 사용자가 줌이나 중심을 바꿨으면 그 시점이 새 기준 */
+  const tg = mv.controls.target, c0 = tg.clone(), d0 = mv.camera.position.distanceTo(tg), p = mv.pull;
+  const kept = p && Math.abs(d0 - p.at) <= p.at * 0.005 && c0.distanceTo(p.tat) <= p.at * 0.005;
+  const base = kept ? p.base : d0, tbase = kept ? p.tbase : c0, [c1, d1] = mvFor(to, tbase, base);
+  mv.pull = { base, tbase, at: d0, tat: c0.clone() };
+  const moves = d1 !== d0 || !c1.equals(c0);
+  if (!animate || stillMotion()) { mvApply({ ...to }); if (moves) mvView(c1, d1); mv.controls.update(); mvDraw(); return; }
   const names = Object.keys(m.joints), t0 = performance.now(), D = 520;
   const step = now => {
     if (mv.cur !== m) return;
     const t = Math.min(1, (now - t0) / D), e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2, q = {};
     for (const n of names) q[n] = (from[n] || 0) + ((to[n] || 0) - (from[n] || 0)) * e;
-    mvApply(q); mv.renderer.render(mv.scene, mv.camera);
-    if (t < 1) mv.anim = requestAnimationFrame(step);
+    mvApply(q); if (moves) mvView(c0.clone().lerp(c1, e), d0 + (d1 - d0) * e);
+    mv.renderer.render(mv.scene, mv.camera);
+    if (t < 1) mv.anim = requestAnimationFrame(step); else mv.controls.update();
   };
   mv.anim = requestAnimationFrame(step);
 }
@@ -1375,8 +1509,8 @@ function mvBuildJoints(def) {
 function mvFrame() { // 모델 전체가 들어오도록 시점을 맞춤
   const m = mv.cur; if (!m) return;
   const { c, size } = mvBox(m);
-  mv.fit = { size, aspect: mv.camera.aspect };
-  mv.controls.target.copy(c); mvAim(c, mvFitDist(size, mv.camera.aspect) * VIEW_ROOM, 0);
+  mv.fit = { size, aspect: mv.camera.aspect }; mv.home = mvFitDist(size, mv.camera.aspect) * VIEW_ROOM; mv.pull = null;
+  mv.controls.target.copy(c); mvAim(c, mv.home, 0);
   mvLimits(); mv.controls.update();
   return size;
 }
@@ -1461,7 +1595,12 @@ mvEl.mirror.addEventListener('change', () => { // 켜는 순간 왼팔 자세를
   for (const s of Object.values(mv.sl)) if (s.it.id.startsWith(def.mirror[0])) { const o = mv.sl[mvPartner(def, s.it.id)]; if (o) q[o.it.id] = (q[s.it.id] || 0) * s.it.s * o.it.s; }
   cancelAnimationFrame(mv.anim); mvApply(q); mvDraw();
 });
-mvEl.stage.addEventListener('dblclick', () => { if (mv.cur) { const q = mv.q; mvApply({}); mvFrame(); mvApply(q); mvDraw(); } });
+mvEl.stage.addEventListener('dblclick', () => { // 시점을 처음으로. 지금 자세가 그 틀보다 크면 자세에 맞춤
+  if (!mv.cur) return;
+  const q = mv.q; mvApply({}); mvFrame(); mvApply(q);
+  const c = mv.controls.target.clone(); mv.pull = { base: mv.home, tbase: c, at: mv.home, tat: c.clone() };
+  mvView(...mvFor(q, c, mv.home)); mv.controls.update(); mvDraw();
+});
 
 /* ───────── robot gallery (shown while no robot is open) ─────────
    Every tile is a live render of the model: the one WebGL renderer draws each robot into a tile-sized corner of its buffer and that
