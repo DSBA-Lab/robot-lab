@@ -6,7 +6,7 @@
 /* Layout: an application shell, not a page of cards. Top bar, catalog rail left, the drawing next to it, robots on the right.
    The drawing column is only as wide as the room needs at the current window height (the room is 347 × 848, so it is narrow);
    everything left over goes to the robot side. When that side is wide enough it splits into a 3D viewport and a settings column.
-   Regions are split by hairlines and the drawing is the only white surface. UI stays monochrome; blue means "selected / robot reach", red means "collision".
+   Regions are split by hairlines and the drawing is the only white surface. UI stays monochrome; blue means "selected", red means "collision". A robot's reach circle takes the colour of the real arm (OpenArm navy, xArm white, SO-101 yellow).
    The plan follows drafting conventions: solid cut walls, lighter object lines, lightest dimension lines with 45° ticks. Stacks to one column under 1080px. */
 :root{
   --paper:#f4f5f7; --panel:#f9fafb; --sheet:#e9ebef; --floor:#ffffff;
@@ -21,6 +21,9 @@
   --equip-fill:#dfe2e7; --equip-line:#5f6672;
   --zone-fill:rgba(28,31,38,.04); --zone-line:#8b919c;
   --reach-fill:rgba(44,95,201,.055); --reach-line:rgba(44,95,201,.5);
+  --reach-oa-fill:rgba(32,56,100,.06); --reach-oa-line:#203864;
+  --reach-xa-fill:rgba(28,31,38,.03); --reach-xa-line:#ffffff; --reach-xa-case:#858c98; --reach-xa-ink:#858c98;
+  --reach-so-fill:rgba(236,180,0,.11); --reach-so-line:#d6a100;
   --bad:#c93a3a; --bad-fill:rgba(201,58,58,.16); --ok:#2e7d4f;
   --stage3d:#dde0e5; --stage3d-hi:#e7e9ed; --stage-grid:#c2c7cf; --stage-axis:#9aa0ab;
   --font-ui:"Inter","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
@@ -40,6 +43,9 @@
     --equip-fill:#333842; --equip-line:#a0a6b1;
     --zone-fill:rgba(231,233,237,.05); --zone-line:#727884;
     --reach-fill:rgba(126,166,244,.08); --reach-line:rgba(126,166,244,.6);
+    --reach-oa-fill:rgba(126,166,244,.08); --reach-oa-line:#8fb0f2;
+    --reach-xa-fill:rgba(255,255,255,.045); --reach-xa-line:#f4f5f7; --reach-xa-case:transparent; --reach-xa-ink:#f4f5f7;
+    --reach-so-fill:rgba(245,200,66,.09); --reach-so-line:#f2c744;
     --bad:#f07070; --bad-fill:rgba(240,112,112,.22); --ok:#62c48a;
     --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492;
     color-scheme:dark;
@@ -58,6 +64,9 @@
   --equip-fill:#333842; --equip-line:#a0a6b1;
   --zone-fill:rgba(231,233,237,.05); --zone-line:#727884;
   --reach-fill:rgba(126,166,244,.08); --reach-line:rgba(126,166,244,.6);
+  --reach-oa-fill:rgba(126,166,244,.08); --reach-oa-line:#8fb0f2;
+  --reach-xa-fill:rgba(255,255,255,.045); --reach-xa-line:#f4f5f7; --reach-xa-case:transparent; --reach-xa-ink:#f4f5f7;
+  --reach-so-fill:rgba(245,200,66,.09); --reach-so-line:#f2c744;
   --bad:#f07070; --bad-fill:rgba(240,112,112,.22); --ok:#62c48a;
   --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492;
   color-scheme:dark;
@@ -276,7 +285,14 @@ details.sec[open] > summary{margin-bottom:10px}
 .item.bad .mark{fill:var(--bad)}
 .hatch-line{stroke:var(--zone-line);opacity:.45}
 .hatch{pointer-events:none}
-.reach{fill:var(--reach-fill);stroke:var(--reach-line);pointer-events:none}
+.reach{fill:var(--rf,var(--reach-fill));stroke:var(--rl,var(--reach-line));pointer-events:none}
+.reach-case{fill:none;stroke:var(--reach-xa-case);pointer-events:none} /* white on a white floor needs an edge */
+.r-openarm2{--rf:var(--reach-oa-fill);--rl:var(--reach-oa-line);--rs:var(--reach-oa-line)}
+.r-xarm7{--rf:var(--reach-xa-fill);--rl:var(--reach-xa-line);--rs:var(--reach-xa-ink)}
+.r-so101{--rf:var(--reach-so-fill);--rl:var(--reach-so-line);--rs:var(--reach-so-line)}
+.sweep{pointer-events:none}
+.sweep path{fill:var(--rs,var(--reach-line));stroke:none}
+.sweep line{stroke:var(--rs,var(--reach-line));fill:none}
 .sel-outline{fill:none;stroke:var(--accent);pointer-events:none}
 .stem{stroke:var(--accent);fill:none;pointer-events:none}
 .handle{fill:var(--floor);stroke:var(--accent);cursor:crosshair}
@@ -477,6 +493,9 @@ const CATS = ['furn', 'robot', 'equip', 'zone'];
 const $ = id => document.getElementById(id);
 const rad = d => d * Math.PI / 180;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const stillMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const REACH_CLS = { openarm2: 'r-openarm2', xarm7: 'r-xarm7', so101: 'r-so101' }; // 작업 반경 색은 실제 로봇 색
+const SWEEP_MS = 850;
 const r2 = v => Math.round(v * 100) / 100;
 const uid = () => 'i' + Math.random().toString(36).slice(2, 9);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -611,6 +630,7 @@ const ui = { snap: 5, reach: true, measure: false, m: null, sel: null };
 try { const u = JSON.parse(localStorage.getItem(LS_UI) || 'null'); if (u) { if ([0, 1, 5, 10].includes(u.snap)) ui.snap = u.snap; ui.reach = u.reach !== false; } } catch (e) {}
 const view = { cx: 0, cy: 0, scale: 1, fitted: true };
 let hist = [], hi = -1, action = null, lastAn = [], rafOn = false;
+let sweep = null, sweepSel = null; // 로봇을 고르면 작업 반경을 한 바퀴 훑음: { id, t0 }
 const pointers = new Map();
 
 const svg = $('plan'), stage = $('stage');
@@ -692,18 +712,37 @@ function render() {
   h += `<rect x="0" y="0" width="${W}" height="${D}" fill="url(#g100)" pointer-events="none"/>`;
 
   // items: zones first, then reach circles, then solid objects
+  if (ui.sel !== sweepSel) { // 선택이 바뀐 순간에만 시작
+    sweepSel = ui.sel; const it = selItem();
+    sweep = it && it.reach > 0 && ui.reach && !stillMotion() ? { id: it.id, t0: performance.now() } : null;
+  }
   const order = state.items.map((it, i) => i).sort((a, b) => layer(state.items[a]) - layer(state.items[b]));
-  let zones = '', bodies = '', reach = '';
+  let zones = '', bodies = '', reach = '', sw = '';
   for (const i of order) {
     const it = state.items[i], a = an[i];
     const g = itemSvg(it, a, px, fs);
     if (it.cat === 'zone') zones += g; else bodies += g;
     if (ui.reach && it.reach > 0) {
       const rr = rad(it.rot), offs = it.armOff > 0 ? [-it.armOff, it.armOff] : [0]; // 양팔은 어깨마다 하나씩
-      for (const o of offs) reach += `<circle class="reach" cx="${r2(it.x + o * Math.cos(rr))}" cy="${r2(it.y + o * Math.sin(rr))}" r="${it.reach}" stroke-width="${px(1)}" stroke-dasharray="${px(4)} ${px(3)}"/>`;
+      const rc = REACH_CLS[it.type] || '', dash = `stroke-dasharray="${px(4)} ${px(3)}"`;
+      const p = sweep && sweep.id === it.id ? (performance.now() - sweep.t0) / SWEEP_MS : -1;
+      for (const o of offs) {
+        const cx = r2(it.x + o * Math.cos(rr)), cy = r2(it.y + o * Math.sin(rr)), R = it.reach;
+        if (rc === 'r-xarm7') reach += `<circle class="reach-case" cx="${cx}" cy="${cy}" r="${R}" stroke-width="${px(3.4)}" ${dash}/>`;
+        reach += `<circle class="reach ${rc}" cx="${cx}" cy="${cy}" r="${R}" stroke-width="${px(1.4)}" ${dash}/>`;
+        if (p >= 0 && p < 1) { // 정면에서 시작해 시계 방향으로 한 바퀴. 바늘 뒤로 옅은 부채꼴이 따라옴
+          const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2, th = rr - Math.PI / 2 + 2 * Math.PI * e;
+          const pt = t => `${r2(cx + R * Math.cos(t))} ${r2(cy + R * Math.sin(t))}`, tail = Math.min(2 * Math.PI * e, 1.15);
+          let w = '';
+          for (const k of [1, 2 / 3, 1 / 3]) if (tail * k > 0.01) w += `<path d="M${cx} ${cy}L${pt(th - tail * k)}A${R} ${R} 0 0 1 ${pt(th)}Z" fill-opacity=".085"/>`;
+          w += `<line x1="${cx}" y1="${cy}" x2="${r2(cx + R * Math.cos(th))}" y2="${r2(cy + R * Math.sin(th))}" stroke-width="${px(1.5)}" stroke-opacity=".85"/>`;
+          sw += `<g class="sweep ${rc}" opacity="${r2(Math.min(1, (1 - p) / 0.25))}">${w}</g>`;
+        }
+      }
     }
   }
-  h += zones + `<g clip-path="url(#roomclip)">${reach}</g>` + bodies;
+  if (sweep && !sw) sweep = null; // 다 돌았거나 반경 표시를 끔
+  h += zones + `<g clip-path="url(#roomclip)">${reach}${sw}</g>` + bodies;
 
   // walls, window, door
   h += `<path class="wall" fill-rule="evenodd" d="M${-T} ${-T}H${W + T}V${D + T}H${-T}Z M0 0V${D}H${W}V0Z"/>`;
@@ -715,9 +754,9 @@ function render() {
   {
     const hx = R.hinge === 'left' ? R.doorX : R.doorX + R.doorW, jx = R.hinge === 'left' ? R.doorX + R.doorW : R.doorX;
     const sy = R.swing === 'in' ? -1 : 1, y0 = R.swing === 'in' ? D : D + T, ty = y0 + sy * R.doorW;
-    const sweep = (R.hinge === 'left') === (R.swing === 'in') ? 1 : 0;
+    const arcDir = (R.hinge === 'left') === (R.swing === 'in') ? 1 : 0;
     h += `<rect class="opening" x="${R.doorX}" y="${D}" width="${R.doorW}" height="${T}"/>`;
-    h += `<path class="door-arc" d="M${hx} ${ty}A${R.doorW} ${R.doorW} 0 0 ${sweep} ${jx} ${y0}" stroke-width="${px(0.8)}"/>`;
+    h += `<path class="door-arc" d="M${hx} ${ty}A${R.doorW} ${R.doorW} 0 0 ${arcDir} ${jx} ${y0}" stroke-width="${px(0.8)}"/>`;
     h += `<line class="door-leaf" x1="${hx}" y1="${y0}" x2="${hx}" y2="${ty}" stroke-width="${px(1.8)}"/>`;
   }
 
@@ -764,6 +803,7 @@ function render() {
   $('t-fit').textContent = Math.round(s / fitScale() * 100) + '%';
   svg.classList.toggle('measuring', ui.measure);
   renderStatus(); renderList(); syncInspector(); mvSync();
+  if (sweep) schedule();
 }
 
 function itemSvg(it, a, px, fs) {
@@ -1091,6 +1131,7 @@ const oaArm = (side, title) => {
   return { title, items: [J(p + 'joint1', 'J1 · 어깨 앞뒤', L), J(p + 'joint2', 'J2 · 어깨 벌림', L), J(p + 'joint3', 'J3 · 상완 회전', !L), J(p + 'joint4', 'J4 · 팔꿈치'),
     J(p + 'joint5', 'J5 · 전완 회전', !L), J(p + 'joint6', 'J6 · 손목 굽힘', !L), J(p + 'joint7', 'J7 · 손목 꺾기', !L), J(p + 'finger_joint1', '그리퍼', !L)] };
 };
+/* hello: [든 자세, 흔드는 관절, 진폭] — 모델을 열 때 한 번 하는 인사. 시점은 영점 자세에 맞춰져 있으므로 그 틀을 벗어나지 않는 작은 동작으로 둠. idle: [관절, 진폭, 위상] — 갤러리에서 숨 쉬듯 움직이는 양 */
 const MODELS = {
   openarm2: {
     file: 'models/openarm2.glb', title: 'OpenArm 2.0', maker: 'Enactic', tagline: '사람 팔 크기의 오픈소스 양팔 로봇. 원격 조작과 모방 학습 데이터 수집용.',
@@ -1114,6 +1155,8 @@ const MODELS = {
       ['양옆으로', { openarm_left_joint2: -1.57, openarm_right_joint2: 1.57 }],
       ['그리퍼 열기', { openarm_left_joint4: 1.57, openarm_right_joint4: 1.57, openarm_left_finger_joint1: 0.7, openarm_right_finger_joint1: -0.7 }],
     ],
+    hello: [{ openarm_right_joint4: 2.2 }, 'openarm_right_joint3', 0.4], // 오른팔 팔뚝을 앞으로 들어 좌우로 흔듦
+    idle: [['openarm_left_joint4', 0.1, 0], ['openarm_right_joint4', 0.1, 0], ['openarm_left_joint2', -0.035, 0.6], ['openarm_right_joint2', 0.035, 0.6]],
   },
   xarm7: {
     file: 'models/xarm7.glb', title: 'xArm7', maker: 'UFACTORY', tagline: '7자유도 협동 로봇팔. 가반하중 3.5 kg, 리치 700 mm.',
@@ -1139,6 +1182,8 @@ const MODELS = {
       ['앞으로 뻗기', { joint2: 0.9, joint4: 2.3, joint6: 1.4 }],
       ['왼쪽 집기', { joint1: 0.9, joint2: 0.35, joint4: 1.35, joint6: 1.0 }],
     ],
+    hello: [{ joint2: -0.35, joint4: 1.2, joint6: -0.9 }, 'joint5', 0.6], // 아래를 보던 손목을 위로 세워 좌우로 흔듦
+    idle: [['joint2', 0.04, 0], ['joint4', 0.08, 0], ['joint6', 0.04, 0.5]],
   },
   so101: {
     file: 'models/so101.glb', title: 'SO-101', maker: 'TheRobotStudio · Hugging Face LeRobot', tagline: '3D 프린팅으로 만드는 저가형 오픈소스 6자유도 팔. 모방 학습 데이터 수집용.',
@@ -1164,6 +1209,8 @@ const MODELS = {
       ['앞으로 뻗기', { shoulder_lift: 0.5, elbow_flex: -0.6, wrist_flex: 0.2 }],
       ['그리퍼 열기', { shoulder_lift: -0.6, elbow_flex: 0.9, wrist_flex: 0.7, gripper: 1.5 }],
     ],
+    hello: [{ shoulder_lift: -1.1, elbow_flex: 0.9, wrist_flex: -1.3, gripper: 1.0 }, 'wrist_flex', 0.45], // 그리퍼를 세워 벌리고 손목을 흔듦
+    idle: [['shoulder_lift', -0.05, 0], ['elbow_flex', -0.08, 0], ['wrist_flex', 0.07, 0.5]],
   },
 };
 const mv = { shown: null, preview: null, ready: null, failed: false, cache: new Map(), cur: null, q: {}, sl: {}, fit: null, raf: 0, anim: 0 };
@@ -1171,7 +1218,6 @@ const mvEl = { box: $('mv'), view: $('mv-view'), gal: $('gal'), stage: $('mv-sta
   work: $('work'), big: $('mv-big'), bigIco: $('mv-big-ico'), back: $('mv-back'), mirror: $('mv-mirror'), mirrorWrap: $('mv-mirror-wrap'), reset: $('mv-reset') };
 const mvMsg = t => { mvEl.msg.textContent = t; mvEl.msg.hidden = !t; };
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const stillMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 function loadScript(src) {
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('script')); document.head.append(s); });
 }
@@ -1278,6 +1324,22 @@ function mvPose(i, animate) {
   };
   mv.anim = requestAnimationFrame(step);
 }
+function mvHello() { // 모델을 열 때 한 번: 팔을 들어 두 번 흔들고 기본 자세로 돌아옴. 자세 버튼이나 슬라이더를 만지면 그만둠
+  const def = MODELS[mv.shown], m = mv.cur; if (!def || !m || !def.hello || stillMotion()) return;
+  const [up, jn, amp] = def.hello, rest = def.poses[0][1], names = Object.keys(m.joints);
+  const UP = 420, WAVE = 900, DOWN = 440, t0 = performance.now(), ease = t => t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+  cancelAnimationFrame(mv.anim);
+  const step = now => {
+    if (mv.cur !== m) return;
+    const t = now - t0, u = (t - UP) / WAVE, q = {};
+    const k = u < 0 ? ease(t / UP) : u < 1 ? 1 : 1 - ease(Math.min(1, (t - UP - WAVE) / DOWN)); // 팔을 든 정도
+    for (const n of names) q[n] = (rest[n] || 0) + ((up[n] || 0) - (rest[n] || 0)) * k;
+    if (u > 0 && u < 1) q[jn] += amp * Math.sqrt(Math.sin(Math.PI * u)) * Math.sin(4 * Math.PI * u);
+    mvApply(q); mv.renderer.render(mv.scene, mv.camera);
+    if (t < UP + WAVE + DOWN) mv.anim = requestAnimationFrame(step);
+  };
+  mv.anim = requestAnimationFrame(step);
+}
 function mvPartner(def, id) { // 좌우 대칭 상대 관절
   if (!def.mirror) return null;
   const [a, b] = def.mirror;
@@ -1356,7 +1418,7 @@ async function mvShow(type) {
   cancelAnimationFrame(mv.anim);
   if (mv.cur) { mv.scene.remove(mv.cur.root); mv.cur = null; }
   mvEl.box.hidden = mvEl.view.hidden = !def; mvEl.gal.hidden = !!def;
-  if (!def) { mvBig(false); galDrawAll(); return; }
+  if (!def) { mvBig(false); galDrawAll(); galTick(); return; }
   mvEl.title.textContent = def.title; mvEl.tag.textContent = `${def.maker} · ${def.tagline}`;
   mvEl.poses.textContent = ''; mvEl.joints.textContent = ''; mv.sl = {};
   mvEl.mirrorWrap.hidden = !def.mirror;
@@ -1376,6 +1438,7 @@ async function mvShow(type) {
   mvApply({}); const size = mvFrame(); mvSpecs(def, size);
   mvBuildJoints(def); mvPose(0, false); mvMsg('');
   mv.renderer.render(mv.scene, mv.camera); mv.renderer.domElement.style.visibility = '';
+  mvHello();
 }
 function mvSync() {
   const it = selItem(), picked = it && MODELS[it.type] ? it.type : null;
@@ -1402,16 +1465,18 @@ mvEl.mirror.addEventListener('change', () => { // 켜는 순간 왼팔 자세를
 mvEl.stage.addEventListener('dblclick', () => { if (mv.cur) { const q = mv.q; mvApply({}); mvFrame(); mvApply(q); mvDraw(); } });
 
 /* ───────── robot gallery (shown while no robot is open) ─────────
-   Every tile is a live render of the model: the one WebGL renderer draws each robot at tile size and the frame is copied
-   onto the tile's own canvas. A tile turns its robot while pointed at, which together with the corner mark is the cue that it opens. */
-const gal = { tiles: {}, raf: 0, last: 0, w: 0, h: 0 };
+   Every tile is a live render of the model: the one WebGL renderer draws each robot into a tile-sized corner of its buffer and that
+   region is copied onto the tile's own canvas. The robots breathe (a few joints drift a little); a tile turns its robot while pointed at,
+   which together with the corner mark is the cue that it opens. */
+const BREATH_S = 4.6;
+const gal = { tiles: {}, raf: 0, last: 0, drawn: 0, t: 0, w: 0, h: 0, vis: true };
 for (const [type, def] of Object.entries(MODELS)) {
   const b = document.createElement('button'), cv = document.createElement('canvas'), cap = document.createElement('span'), nm = document.createElement('span'), mk = document.createElement('span'), go = document.createElement('span');
   b.type = 'button'; b.className = 'gt loading'; b.setAttribute('aria-label', `${def.title} 3D 모델 열기`);
   cap.className = 'gt-cap'; nm.className = 'gt-nm'; nm.textContent = def.title; mk.className = 'gt-mk'; mk.textContent = def.maker; cap.append(nm, mk);
   go.className = 'gt-go'; go.setAttribute('aria-hidden', 'true'); go.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 16l8-8M9.5 8H16v6.5"/></svg>';
   b.append(cv, cap, go);
-  const t = gal.tiles[type] = { el: b, cv, m: null, box: null, yaw: 0, spin: false };
+  const t = gal.tiles[type] = { el: b, cv, m: null, box: null, yaw: 0, spin: false, ph: Object.keys(gal.tiles).length * 2.1 }; // ph: 로봇마다 숨이 엇갈리게
   const spin = on => { t.spin = on; galTick(); };
   b.addEventListener('pointerenter', e => { if (e.pointerType !== 'touch') spin(true); });
   b.addEventListener('pointerleave', () => spin(false));
@@ -1420,48 +1485,59 @@ for (const [type, def] of Object.entries(MODELS)) {
   b.addEventListener('click', () => { t.spin = false; mv.preview = type; mvSync(); });
   mvEl.gal.append(b);
 }
+function galPose(type) { // 기본 자세 + 숨쉬기. gal.t가 0이면(동작 줄이기) 기본 자세 그대로
+  const def = MODELS[type], q = { ...def.poses[0][1] }, w = gal.t * 2 * Math.PI / BREATH_S + gal.tiles[type].ph;
+  if (gal.t) for (const [n, amp, ph] of def.idle || []) q[n] = (q[n] || 0) + amp * (0.5 - 0.5 * Math.cos(w + ph));
+  return q;
+}
 function galDraw(type) {
   const t = gal.tiles[type], m = t.m; if (!m || mv.shown || !mv.renderer) return;
   const w = t.cv.clientWidth, h = t.cv.clientHeight; if (!w || !h) return;
   const r = mv.renderer, cam = mv.camera, el = r.domElement;
-  if (gal.w !== w || gal.h !== h || mv.sized) { r.setSize(w, h, false); gal.w = w; gal.h = h; mv.sized = false; } // 크기가 바뀔 때만 버퍼를 다시 잡음
+  let W = 0, H = 0; for (const o of Object.values(gal.tiles)) { W = Math.max(W, o.cv.clientWidth); H = Math.max(H, o.cv.clientHeight); }
+  if (gal.w !== W || gal.h !== H || mv.sized) { r.setSize(W, H, false); gal.w = W; gal.h = H; mv.sized = false; } // 버퍼는 가장 큰 타일 크기로 한 번만 잡음
+  r.setViewport(0, 0, w, h); // 왼쪽 아래 w × h 영역에 그림
   cam.aspect = w / h;
-  mvSet(m, MODELS[type].poses[0][1]);
-  if (!t.box) t.box = mvBox(m);
+  if (!t.box) { mvSet(m, MODELS[type].poses[0][1]); t.box = mvBox(m); }
+  mvSet(m, galPose(type));
   const dist = mvFitDist(t.box.size, cam.aspect) * 1.16, look = t.box.c.clone(); look.y -= dist * 0.035; // 이름표 자리만큼 살짝 위로
   mvAim(look, dist, t.yaw); cam.lookAt(look);
   mv.grid.visible = false; mv.scene.add(m.root);
   r.render(mv.scene, cam);
   mv.scene.remove(m.root);
-  if (t.cv.width !== el.width || t.cv.height !== el.height) { t.cv.width = el.width; t.cv.height = el.height; }
-  const g = t.cv.getContext('2d'); g.clearRect(0, 0, t.cv.width, t.cv.height); g.drawImage(el, 0, 0);
+  const pr = r.getPixelRatio(), sw = Math.floor(w * pr), sh = Math.floor(h * pr);
+  if (t.cv.width !== sw || t.cv.height !== sh) { t.cv.width = sw; t.cv.height = sh; }
+  const g = t.cv.getContext('2d'); g.clearRect(0, 0, sw, sh); g.drawImage(el, 0, el.height - sh, sw, sh, 0, 0, sw, sh);
 }
 function galDrawAll() { if (!mv.shown) for (const type of Object.keys(gal.tiles)) galDraw(type); }
-function galTick() { // 가리킨 타일은 돌리고, 벗어난 타일은 정면으로 되돌림
+function galTick() { // 숨쉬기는 계속, 가리킨 타일은 돌리고, 벗어난 타일은 정면으로 되돌림
   if (gal.raf) return;
   gal.last = performance.now();
   const step = now => {
     gal.raf = 0;
-    const dt = Math.min(64, now - gal.last) / 1000; gal.last = now;
-    let busy = false;
-    if (!mv.shown) for (const [type, t] of Object.entries(gal.tiles)) {
+    if (mv.shown) return;
+    const dt = Math.min(64, now - gal.last) / 1000, still = stillMotion(), breathe = !still && gal.vis; gal.last = now;
+    let turning = false;
+    for (const t of Object.values(gal.tiles)) {
       if (!t.m) continue;
-      if (t.spin && !stillMotion()) { t.yaw += dt * 0.75; busy = true; }
+      if (t.spin && !still) { t.yaw += dt * 0.75; turning = true; }
       else if (t.yaw) {
         const full = Math.PI * 2, y = ((t.yaw % full) + full) % full, to = y > Math.PI ? full : 0;
-        t.yaw = Math.abs(to - y) < 0.01 ? 0 : y + (to - y) * Math.min(1, dt * 7); busy = busy || t.yaw !== 0;
-      } else continue;
-      galDraw(type);
+        t.yaw = Math.abs(to - y) < 0.01 ? 0 : y + (to - y) * Math.min(1, dt * 7); turning = true;
+      }
     }
-    if (busy) gal.raf = requestAnimationFrame(step);
+    if (breathe) gal.t += dt;
+    if (turning || (breathe && now - gal.drawn >= 30)) { gal.drawn = now; galDrawAll(); } // 숨쉬기만 할 때는 초당 30장이면 충분
+    if (turning || breathe) gal.raf = requestAnimationFrame(step);
   };
   gal.raf = requestAnimationFrame(step);
 }
 function galLoad() {
-  for (const [type, t] of Object.entries(gal.tiles)) mvModel(type).then(m => { t.m = m; t.el.classList.remove('loading'); galDraw(type); if (t.spin) galTick(); },
+  for (const [type, t] of Object.entries(gal.tiles)) mvModel(type).then(m => { t.m = m; t.el.classList.remove('loading'); galDraw(type); galTick(); },
     e => { console.warn('3D model:', e); t.el.classList.remove('loading'); });
 }
 if ('ResizeObserver' in window) new ResizeObserver(galDrawAll).observe(mvEl.gal);
+if ('IntersectionObserver' in window) new IntersectionObserver(es => { gal.vis = es[es.length - 1].isIntersecting; if (gal.vis) galTick(); }).observe(mvEl.gal); // 안 보일 때는 쉼
 
 /* ───────── boot ───────── */
 hist = [snapshot()]; hi = 0;
