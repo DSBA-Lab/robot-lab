@@ -282,6 +282,8 @@ details.sec[open] > summary{margin-bottom:10px}
 .item.cat-zone .body{fill:var(--zone-fill);stroke:var(--zone-line)}
 .item.t-otable .body{fill:var(--ot-fill);stroke:var(--ot-line)}
 .ot-hole{fill:var(--ot-hole)}
+.ws-pc{fill:var(--equip-fill);stroke:var(--equip-line)}
+.ws-pc-t{fill:var(--ink);pointer-events:none}
 .holes{pointer-events:none}
 .item.glyphed .body{fill:transparent;stroke:none} /* the footprint only shows (red) when it collides */
 .glyph path{stroke-linejoin:round}
@@ -305,6 +307,7 @@ details.sec[open] > summary{margin-bottom:10px}
 .r-openarm2{--rf:var(--reach-oa-fill);--rl:var(--reach-oa-line);--rs:var(--reach-oa-line)}
 .r-xarm7{--rf:var(--reach-xa-fill);--rl:var(--reach-xa-line);--rs:var(--reach-xa-ink)}
 .r-so101{--rf:var(--reach-so-fill);--rl:var(--reach-so-line);--rs:var(--reach-so-line)}
+.r-so101l{--rf:transparent;--rl:var(--reach-so-line);--rs:var(--reach-so-line);stroke-opacity:.55} /* leader arm: outline only, so four circles on one table stay readable */
 .sweep{pointer-events:none}
 .sweep path{fill:var(--rs,var(--reach-line));stroke:none}
 .sweep line{stroke:var(--rs,var(--reach-line));fill:none}
@@ -498,7 +501,7 @@ const TOP = {
 };
 for (const g of Object.values(TOP)) g.svg = g.parts.map(q => `<path class="g${q[0]}" d="${q.slice(1)}"/>`).join('');
 TOP.so101l = TOP.so101; // 리더 암은 팔로워와 같은 윤곽으로 그리고 색만 옅게 (실물은 집게 대신 손잡이)
-/* 워크스테이션 책상(wsdesk)에 그려 넣는 모니터와 키보드. 책상의 일부라 따로 고르거나 옮길 수 없음. 모니터는 화면이 −y 쪽(앉는 쪽)을 보고 뒤에 받침이 있음. 키보드는 판 위에 자판 세 줄 */
+/* 워크스테이션 책상(wsdesk)에 그려 넣는 모니터와 키보드 (본체는 itemSvg에서 사각형으로 그림). 책상의 일부라 따로 고르거나 옮길 수 없음. 모니터는 화면이 −y 쪽(앉는 쪽)을 보고 뒤에 받침이 있음. 키보드는 판 위에 자판 세 줄 */
 const PROPS = {
   monitor: { box: [-30, -8, 30, 8], parts: ['dM-11 -3H11V8H-11Z', 'dM-30 -8H30V-4.5H-30Z'] },
   keyboard: { box: [-22.5, -7.5, 22.5, 7.5], parts: ['lM-22.5 -7.5H22.5V7.5H-22.5Z', 'dM-20 -5H20V-3H-20Z', 'dM-20 -1H20V1H-20Z', 'dM-20 3H20V5H-20Z'] },
@@ -520,7 +523,7 @@ const CATALOG = [
   ]},
   { group: '장비', items: [
     { type: 'pc',     name: '컴퓨터 본체', w: 25, d: 55,  reach: 0, cat: 'equip' },
-    { type: 'so101l', name: 'SO-101 리더', w: 11, d: 9, reach: 0, cat: 'equip' },
+    { type: 'so101l', name: 'SO-101 리더', w: 11, d: 9, reach: 44, cat: 'equip' },
     { type: 'tripod', name: '카메라 삼각대', w: 70, d: 70,  reach: 0, cat: 'equip', round: true },
   ]},
 ];
@@ -531,7 +534,7 @@ const $ = id => document.getElementById(id);
 const rad = d => d * Math.PI / 180;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const stillMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-const REACH_CLS = { openarm2: 'r-openarm2', xarm7: 'r-xarm7', so101: 'r-so101' }; // 작업 반경 색은 실제 로봇 색
+const REACH_CLS = { openarm2: 'r-openarm2', xarm7: 'r-xarm7', so101: 'r-so101', so101l: 'r-so101l' }; // 작업 반경 색은 실제 로봇 색
 const SWEEP_MS = 850;
 const r2 = v => Math.round(v * 100) / 100;
 const uid = () => 'i' + Math.random().toString(36).slice(2, 9);
@@ -554,14 +557,13 @@ function defaultArms() {
 }
 function defaultTeleop() {
   // SO-101 원격 조작: 팔로워 두 대를 테이블 가운데에 40 cm 간격으로 모아 같은 물체를 함께 다룰 수 있게 하고, 리더 암은 양 끝에 하나씩 (짝 팔로워에서 30 cm)
-  const lead = { type: 'so101l', cat: 'equip', x: 282, rot: 90, w: 11, d: 9 };
+  const lead = { type: 'so101l', cat: 'equip', x: 282, rot: 90, w: 11, d: 9, reach: 44 };
   return [{ ...lead, id: 'so101l-1', name: '리더 #1', y: 450 }, { ...lead, id: 'so101l-2', name: '리더 #2', y: 350 }];
 }
 function defaultDesk() {
-  // 워크스테이션: 왼쪽 벽에 붙인 책상(책상 1과 OpenArm 사이). 모니터와 키보드는 책상 그림에 들어 있고, 창문 쪽 끝에 본체, 방 쪽에 의자
+  // 워크스테이션: 왼쪽 벽에 붙인 책상(책상 1과 OpenArm 사이). 모니터, 키보드, 본체는 책상 그림에 들어 있고, 방 쪽에 의자
   return [
     { id: 'ws-desk', type: 'wsdesk', name: '워크스테이션', cat: 'furn', x: 40, y: 330, w: 160, d: 80, rot: 90 },
-    { id: 'ws-pc', type: 'pc', name: 'PC', cat: 'equip', x: 30, y: 270, w: 25, d: 55, rot: 90 },
     { id: 'ws-chair', type: 'chair', name: '의자', cat: 'furn', x: 110, y: 330, w: 55, d: 55, round: true, soft: true },
   ];
 }
@@ -612,6 +614,7 @@ function cleanState(s) {
     for (const q of props) { const dk = items.find(o => o.type === 'desk' && inPoly(poly(o), q.x, q.y)); if (dk) dk.type = 'wsdesk'; }
     items = items.filter(it => !props.includes(it));
   }
+  items = items.filter(it => !(it.id === 'ws-pc' && items.some(o => o.type === 'wsdesk' && inPoly(poly(o), it.x, it.y)))); // 기본 배치에 따로 있던 본체도 이제 책상 그림의 일부
   if (!(s.v >= 2) && !items.some(it => SPECS[it.type])) items.push(...defaultArms().map(cleanItem)); // 이전 버전에서 저장한 배치에는 보유 로봇팔이 없음
   for (const it of items) if (it.type === 'openarm2' && it.w === 45 && it.d === 25 && it.armOff === 17.5) { it.w = 41; it.armOff = 15.25; } // 사진 추정값 → 공식 모델 치수
   if (!(s.v >= 3)) items.push(...seatRobots(items)); // v2까지는 로봇이 테이블 없이 서 있었음
@@ -797,7 +800,7 @@ function render() {
   if (s * 50 >= 14) h += `<rect x="0" y="0" width="${W}" height="${D}" fill="url(#g50)" pointer-events="none"/>`;
   h += `<rect x="0" y="0" width="${W}" height="${D}" fill="url(#g100)" pointer-events="none"/>`;
 
-  // items: zones first, then reach circles, then solid objects
+  // items: zones first, then furniture, then reach circles, then whatever stands on the furniture
   if (ui.sel !== sweepSel) { // 선택이 바뀐 순간에만 시작
     sweepSel = ui.sel; const it = selItem();
     sweep = it && it.reach > 0 && ui.reach && !stillMotion() ? { id: it.id, t0: performance.now() } : null;
@@ -819,13 +822,13 @@ function render() {
     placed.push(box(k));
     return `<text class="rlbl" x="${r2(cand[k][0])}" y="${r2(cand[k][1])}" font-size="${fs}" stroke-width="${px(3)}" text-anchor="${cand[k][2]}">${esc(it.name)}</text>`;
   };
-  let zones = '', bodies = '', reach = '', sw = '', labels = '';
+  let zones = '', low = '', high = '', reach = '', sw = '', labels = ''; // low: 가구와 바닥에 놓인 것, high: 그 위에 올린 로봇과 장비
   for (const i of order) {
     const it = state.items[i], a = an[i];
     const lw = textEm(it.name) * fs / 2, mid = { x0: it.x - lw, x1: it.x + lw, y0: it.y - fs * 1.3, y1: it.y + fs * 1.3 };
     const hidden = isSurface(it) && under.some((j, k) => j === i && boxHit(gb[k], mid)); // 올려 둔 로봇에 가려지는 테이블 이름은 뺌
     const g = itemSvg(it, a, px, fs, holes, hidden);
-    if (it.cat === 'zone') zones += g; else bodies += g;
+    if (it.cat === 'zone') zones += g; else if (isTop(it)) high += g; else low += g;
     if (gb[i]) labels += robotLabel(it, i);
     if (ui.reach && it.reach > 0) {
       const rr = rad(it.rot), offs = it.armOff > 0 ? [-it.armOff, it.armOff] : [0]; // 양팔은 어깨마다 하나씩
@@ -847,7 +850,7 @@ function render() {
     }
   }
   if (sweep && !sw) sweep = null; // 다 돌았거나 반경 표시를 끔
-  h += zones + `<g clip-path="url(#roomclip)">${reach}${sw}</g>` + bodies + labels;
+  h += zones + low + `<g clip-path="url(#roomclip)">${reach}${sw}</g>` + high + labels; // 작업 반경은 테이블에 가리지 않게 가구 위에, 로봇은 그 위에
 
   // walls, window, door
   h += `<path class="wall" fill-rule="evenodd" d="M${-T} ${-T}H${W + T}V${D + T}H${-T}Z M0 0V${D}H${W}V0Z"/>`;
@@ -922,7 +925,14 @@ function itemSvg(it, a, px, fs, holes, noLabel) {
     g += `<rect class="body" x="${-hw}" y="${-hd}" width="${it.w}" height="${it.d}" rx="${Math.min(1, hw, hd)}" stroke-width="${px(1.2)}"${dash}/>`;
     if (it.cat === 'zone') g += `<rect class="hatch" x="${-hw}" y="${-hd}" width="${it.w}" height="${it.d}" fill="url(#hatch)"/>`;
     if (holes && it.type === 'otable') g += `<rect class="holes" x="${-hw}" y="${-hd}" width="${it.w}" height="${it.d}" fill="url(#holes)"/>`;
-    if (it.type === 'wsdesk') g += `<g class="glyph" stroke-width="${Math.min(px(0.9), 0.45)}"><g transform="translate(0 ${hd - 16})">${PROPS.monitor.svg}</g><g transform="translate(0 ${24 - hd})">${PROPS.keyboard.svg}</g></g>`; // 모니터는 뒤쪽 끝, 키보드는 앉는 쪽
+    if (it.type === 'wsdesk') { // 모니터는 뒤쪽 끝, 키보드는 앉는 쪽, 본체(25 × 55)는 왼쪽 끝 뒤편
+      g += `<g class="glyph" stroke-width="${Math.min(px(0.9), 0.45)}"><g transform="translate(0 ${hd - 16})">${PROPS.monitor.svg}</g><g transform="translate(0 ${24 - hd})">${PROPS.keyboard.svg}</g></g>`;
+      if (it.w >= 100 && it.d >= 60) {
+        const cx = 20 - hw, cy = hd - 30, r = rad(it.rot), ca = Math.abs(Math.cos(r)), sa = Math.abs(Math.sin(r)), f = fs * 0.95;
+        g += `<rect class="ws-pc" x="${cx - 12.5}" y="${cy - 27.5}" width="25" height="55" rx="1" stroke-width="${px(1.2)}"/>`;
+        if (f * 1.2 <= (25 * ca + 55 * sa) * 0.92 && 25 * sa + 55 * ca >= f * 1.3) g += `<text class="ws-pc-t" transform="translate(${cx} ${cy}) rotate(${-it.rot})" y="${f * 0.36}" font-size="${f}" text-anchor="middle">PC</text>`;
+      }
+    }
   }
   if (Math.min(it.w, it.d) < px(26)) g += `<circle class="hit-pad" r="${px(13)}"/>`; // 작은 물체도 잡기 쉽게
   if (G) return g + `<g class="glyph g-${it.type}" stroke-width="${Math.min(px(0.9), 0.45)}">${G.svg}</g></g>`; // 팔이 뻗은 쪽이 앞. 이름표는 render가 바깥에 붙임
