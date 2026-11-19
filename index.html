@@ -486,7 +486,7 @@ const SPECS = {
   so101: 'SO-101 · 베이스 약 11 × 9 cm (공개 CAD 기준) · 리치 약 44 cm (공개 URDF 링크 길이 합산, 그리퍼 끝 기준).',
   so101l: 'SO-101 리더 암 · 팔로워를 원격 조작하는 장치. 크기와 관절 구조는 팔로워와 같고 집게 대신 손잡이가 달려 있습니다. 팔로워 옆, 같은 테이블 끝에 클램프로 고정하고 조작자가 그 뒤에 앉습니다.',
 };
-const TOP_TYPES = new Set(['openarm2', 'xarm7', 'so101', 'so101l', 'arm', 'pc']); // 책상·테이블 위에 올릴 수 있는 것
+const TOP_TYPES = new Set(['openarm2', 'xarm7', 'so101', 'so101l', 'arm', 'pc', 'monitor', 'keyboard']); // 책상·테이블 위에 올릴 수 있는 것
 /* 로봇을 올려 쓰는 테이블: [종류, 이름, 가로, 세로, 테이블 뒤쪽 끝에서 로봇 중심까지]. 로봇은 가로로 가운데, 세로로 끝에 둠.
    OpenArm은 베이스 플레이트(깊이 25)를, xArm7은 베이스 뒤 커넥터(중심에서 9.2)를 테이블 끝에 맞춤. SO-101은 클램프로 물리므로 테이블 끝에 붙임 */
 const SEAT = { openarm2: ['otable', '광학 테이블', 80, 60, 12.5], xarm7: ['otable', '광학 테이블', 80, 60, 10], so101: ['table', 'SO-101 테이블', 140, 70, 5] };
@@ -499,6 +499,12 @@ const TOP = {
 };
 for (const g of Object.values(TOP)) g.svg = g.parts.map(q => `<path class="g${q[0]}" d="${q.slice(1)}"/>`).join('');
 TOP.so101l = TOP.so101; // 리더 암은 팔로워와 같은 윤곽으로 그리고 색만 옅게 (실물은 집게 대신 손잡이)
+/* 책상 위 소품. 모니터는 화면이 −y 쪽(앞)을 보고 뒤에 받침이 있음. 키보드는 판 위에 자판 세 줄. 모양으로 알 수 있으니 도면에 이름표는 붙이지 않음 */
+const PROPS = {
+  monitor: { box: [-30, -8, 30, 8], parts: ['dM-11 -3H11V8H-11Z', 'dM-30 -8H30V-4.5H-30Z'] },
+  keyboard: { box: [-22.5, -7.5, 22.5, 7.5], parts: ['lM-22.5 -7.5H22.5V7.5H-22.5Z', 'dM-20 -5H20V-3H-20Z', 'dM-20 -1H20V1H-20Z', 'dM-20 3H20V5H-20Z'] },
+};
+for (const [k, g] of Object.entries(PROPS)) { g.svg = g.parts.map(q => `<path class="g${q[0]}" d="${q.slice(1)}"/>`).join(''); TOP[k] = g; }
 const CATALOG = [
   { group: '로봇', items: [
     { type: 'openarm2', name: 'OpenArm 2.0', w: 41,   d: 25,   reach: 60.6, armOff: 15.25, cat: 'robot' },
@@ -513,7 +519,9 @@ const CATALOG = [
     { type: 'chair', name: '의자',        w: 55,  d: 55, reach: 0, cat: 'furn', round: true, soft: true },
   ]},
   { group: '장비', items: [
-    { type: 'pc',     name: '워크스테이션', w: 25, d: 55,  reach: 0, cat: 'equip' },
+    { type: 'pc',     name: '컴퓨터 본체', w: 25, d: 55,  reach: 0, cat: 'equip' },
+    { type: 'monitor', name: '모니터', w: 60, d: 16, reach: 0, cat: 'equip' },
+    { type: 'keyboard', name: '키보드', w: 45, d: 15, reach: 0, cat: 'equip' },
     { type: 'so101l', name: 'SO-101 리더', w: 11, d: 9, reach: 0, cat: 'equip' },
     { type: 'tripod', name: '카메라 삼각대', w: 70, d: 70,  reach: 0, cat: 'equip', round: true },
   ]},
@@ -537,22 +545,29 @@ const norm = a => ((a % 360) + 360) % 360;
 const defaultRoom = () => ({ ...ROOM });
 function defaultArms() {
   // 보유 로봇팔 4대. 책상에서 떨어진 방 아래쪽 절반에 둠: OpenArm은 왼쪽 벽 가까이에서 방 안쪽을, xArm7은 문 맞은편 구석에서 창문 쪽을 봄.
-  // SO-101 두 대는 오른쪽 벽에 붙인 테이블의 방 쪽 끝에 물려 벽을 봄 (조작자가 그 뒤, 방 쪽에 앉음). 테이블은 seatRobots가 밑에 깔아 줌
+  // SO-101 두 대는 오른쪽 벽에 붙인 테이블의 방 쪽 끝 가운데에 물려 벽을 봄 (조작자는 그 뒤, 방 쪽). 테이블은 seatRobots가 밑에 깔아 줌
   const base = { cat: 'robot', soft: false, lock: false };
   return [
     { ...base, id: 'openarm', type: 'openarm2', name: 'OpenArm 2.0', x: 62.5, y: 550, rot: 90, w: 41, d: 25, reach: 60.6, armOff: 15.25, round: false },
     { ...base, id: 'xarm7', type: 'xarm7', name: 'xArm7', x: 275, y: 775, rot: 0, w: 12.6, d: 12.6, reach: 70, armOff: 0, round: true },
-    { ...base, id: 'so101-1', type: 'so101', name: 'SO-101 #1', x: 282, y: 450, rot: 90, w: 11, d: 9, reach: 44, armOff: 0, round: false },
-    { ...base, id: 'so101-2', type: 'so101', name: 'SO-101 #2', x: 282, y: 350, rot: 90, w: 11, d: 9, reach: 44, armOff: 0, round: false },
+    { ...base, id: 'so101-1', type: 'so101', name: 'SO-101 #1', x: 282, y: 420, rot: 90, w: 11, d: 9, reach: 44, armOff: 0, round: false },
+    { ...base, id: 'so101-2', type: 'so101', name: 'SO-101 #2', x: 282, y: 380, rot: 90, w: 11, d: 9, reach: 44, armOff: 0, round: false },
   ];
 }
 function defaultTeleop() {
-  // SO-101 원격 조작: 리더 암 두 대를 팔로워 사이에 35 cm 간격으로 두어 한 사람이 양손으로 잡을 수 있게 하고, 그 뒤에 조작자 의자
+  // SO-101 원격 조작: 팔로워 두 대를 테이블 가운데에 40 cm 간격으로 모아 같은 물체를 함께 다룰 수 있게 하고, 리더 암은 양 끝에 하나씩 (짝 팔로워에서 30 cm)
   const lead = { type: 'so101l', cat: 'equip', x: 282, rot: 90, w: 11, d: 9 };
+  return [{ ...lead, id: 'so101l-1', name: '리더 #1', y: 450 }, { ...lead, id: 'so101l-2', name: '리더 #2', y: 350 }];
+}
+function defaultDesk() {
+  // 워크스테이션: 왼쪽 벽에 붙인 책상(책상 1과 OpenArm 사이), 벽 쪽에 모니터, 그 앞에 키보드, 창문 쪽 끝에 본체, 방 쪽에 의자
+  const top = { cat: 'equip', rot: 90 };
   return [
-    { ...lead, id: 'so101l-1', name: '리더 #1', y: 417.5 },
-    { ...lead, id: 'so101l-2', name: '리더 #2', y: 382.5 },
-    { id: 'seat-so101', type: 'chair', name: '조작자', cat: 'furn', x: 225, y: 400, w: 55, d: 55, round: true, soft: true },
+    { id: 'ws-desk', type: 'desk', name: '워크스테이션', cat: 'furn', x: 40, y: 330, w: 160, d: 80, rot: 90 },
+    { ...top, id: 'ws-pc', type: 'pc', name: 'PC', x: 30, y: 270, w: 25, d: 55 },
+    { ...top, id: 'ws-monitor', type: 'monitor', name: '모니터', x: 16, y: 335, w: 60, d: 16 },
+    { ...top, id: 'ws-keyboard', type: 'keyboard', name: '키보드', x: 56, y: 335, w: 45, d: 15 },
+    { id: 'ws-chair', type: 'chair', name: '의자', cat: 'furn', x: 110, y: 335, w: 55, d: 55, round: true, soft: true },
   ];
 }
 function defaultItems(room) {
@@ -561,7 +576,7 @@ function defaultItems(room) {
   return [
     { id: 'desk-l', type: 'desk', name: '책상 1', cat: 'furn', x: 40, y: 110, w: 160, d: 80, rot: 90, reach: 0, round: false, soft: false, lock: false },
     { id: 'desk-r', type: 'desk', name: '책상 2', cat: 'furn', x: room.w - 40, y: 110, w: 160, d: 80, rot: 90, reach: 0, round: false, soft: false, lock: false },
-  ].map(cleanItem).concat(seatRobots(arms), arms, defaultTeleop().map(cleanItem));
+  ].map(cleanItem).concat(defaultDesk().map(cleanItem), seatRobots(arms), arms, defaultTeleop().map(cleanItem));
 }
 function seatRobots(items) { // 테이블 없이 서 있는 로봇 밑에 깔 테이블을 만들어 돌려줌. 로봇 자리는 그대로 두고, 나란히 선 SO-101 두 대는 한 테이블에
   const out = [], seated = it => items.concat(out).some(o => isSurface(o) && inPoly(poly(o), it.x, it.y));
@@ -811,7 +826,7 @@ function render() {
     const hidden = isSurface(it) && under.some((j, k) => j === i && boxHit(gb[k], mid)); // 올려 둔 로봇에 가려지는 테이블 이름은 뺌
     const g = itemSvg(it, a, px, fs, holes, hidden);
     if (it.cat === 'zone') zones += g; else bodies += g;
-    if (gb[i]) labels += robotLabel(it, i);
+    if (gb[i] && !PROPS[it.type]) labels += robotLabel(it, i);
     if (ui.reach && it.reach > 0) {
       const rr = rad(it.rot), offs = it.armOff > 0 ? [-it.armOff, it.armOff] : [0]; // 양팔은 어깨마다 하나씩
       const rc = REACH_CLS[it.type] || '', dash = `stroke-dasharray="${px(4)} ${px(3)}"`;
