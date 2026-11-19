@@ -89,11 +89,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .bar{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;min-height:44px;padding-block:6px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   border-bottom:1px solid var(--line);background:var(--panel)}
-.bar h1{display:flex;align-items:center;gap:8px;margin:0 auto 0 0;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.bar h1{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
 .bar h1 svg{flex:none;width:22px;height:22px;display:block} /* the favicon mark (assets/favicon.svg), inlined */
 .tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 .tg{display:flex;align-items:center;gap:2px}
 .tg + .tg{padding-left:10px;border-left:1px solid var(--line)}
+.plans{margin-right:auto;padding-left:12px;border-left:1px solid var(--line)} /* layout presets, next to the title; the pressed one is the layout on screen */
 .tg button,.tg label{display:flex;align-items:center;gap:6px;height:28px;padding:0 8px;border:0;border-radius:4px;background:transparent;font-size:13px;white-space:nowrap}
 .tg button{cursor:pointer}
 .tg button:hover:not(:disabled){background:var(--hover)}
@@ -353,6 +354,10 @@ details.sec[open] > summary{margin-bottom:10px}
 <div class="app">
   <header class="bar">
     <h1><svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><rect width="64" height="64" rx="12" fill="#203864"/><g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 53h22"/><path d="M23 46L30 23L47 30"/><path d="M40 41v-6q0-5 7-5t7 5v6"/></g><g fill="#203864" stroke="#fff" stroke-width="4.5"><circle cx="23" cy="46" r="5.5"/><circle cx="30" cy="23" r="5.5"/></g></svg>DSBA Robot Lab</h1>
+    <div class="tg plans" role="group" aria-label="배치안">
+      <button type="button" id="p-2" aria-pressed="false" title="책상 2개를 남기는 배치를 불러옵니다. 지금 배치는 되돌리기로 복구할 수 있습니다.">책상 2개 유지 시</button>
+      <button type="button" id="p-4" aria-pressed="false" title="책상 4개를 남기는 배치를 불러옵니다. 지금 배치는 되돌리기로 복구할 수 있습니다.">책상 4개 유지 시</button>
+    </div>
     <div class="tools" role="toolbar" aria-label="도구">
       <div class="tg">
         <button type="button" id="t-undo" title="되돌리기 (Ctrl+Z)">되돌리기</button>
@@ -374,9 +379,6 @@ details.sec[open] > summary{margin-bottom:10px}
         <button type="button" id="t-zout" title="축소" aria-label="축소">−</button>
         <button type="button" id="t-fit" title="전체 보기로 되돌리기">100%</button>
         <button type="button" id="t-zin" title="확대" aria-label="확대">+</button>
-      </div>
-      <div class="tg">
-        <button type="button" id="t-reset" title="처음 배치로 되돌립니다">초기화</button>
       </div>
     </div>
   </header>
@@ -523,7 +525,7 @@ const CATALOG = [
   ]},
   { group: '장비', items: [
     { type: 'pc',     name: '컴퓨터 본체', w: 25, d: 55,  reach: 0, cat: 'equip' },
-    { type: 'so101l', name: 'SO-101 리더', w: 11, d: 9, reach: 44, cat: 'equip' },
+    { type: 'so101l', name: 'SO-101 리더', w: 11, d: 9, reach: 0, cat: 'equip' },
     { type: 'tripod', name: '카메라 삼각대', w: 70, d: 70,  reach: 0, cat: 'equip', round: true },
   ]},
 ];
@@ -544,36 +546,42 @@ const num = (v, def, lo, hi) => { v = Number(v); return Number.isFinite(v) ? cla
 const norm = a => ((a % 360) + 360) % 360;
 
 const defaultRoom = () => ({ ...ROOM });
-function defaultArms() {
-  // 보유 로봇팔 4대. 책상에서 떨어진 방 아래쪽 절반에 둠: OpenArm은 왼쪽 벽 가까이에서 방 안쪽을, xArm7은 문 맞은편 구석에서 창문 쪽을 봄.
+/* 배치안 두 가지. 책상을 2개 남길 때와 4개 남길 때. 처음 열면 2개 안.
+   ws: 워크스테이션 책상 중심, oa: OpenArm 중심, so: SO-101 테이블의 세로 중심. xArm7 자리는 두 안이 같음 */
+const PLANS = {
+  2: { ws: [40, 330], oa: [62.5, 550], so: 400 },
+  4: { ws: [45, 460], oa: [67.5, 645], so: 585 }, // 책상 3·4가 창문 벽에서 350까지 내려와 나머지를 문 쪽으로 밀어 놓음
+};
+function defaultArms(P) {
+  // 보유 로봇팔 4대. 책상에서 떨어진 방 아래쪽에 둠: OpenArm은 왼쪽 벽 가까이에서 방 안쪽을, xArm7은 문 맞은편 구석에서 창문 쪽을 봄.
   // SO-101 두 대는 오른쪽 벽에 붙인 테이블의 방 쪽 끝 가운데에 물려 벽을 봄 (조작자는 그 뒤, 방 쪽). 테이블은 seatRobots가 밑에 깔아 줌
   const base = { cat: 'robot', soft: false, lock: false };
   return [
-    { ...base, id: 'openarm', type: 'openarm2', name: 'OpenArm 2.0', x: 62.5, y: 550, rot: 90, w: 41, d: 25, reach: 60.6, armOff: 15.25, round: false },
+    { ...base, id: 'openarm', type: 'openarm2', name: 'OpenArm 2.0', x: P.oa[0], y: P.oa[1], rot: 90, w: 41, d: 25, reach: 60.6, armOff: 15.25, round: false },
     { ...base, id: 'xarm7', type: 'xarm7', name: 'xArm7', x: 275, y: 775, rot: 0, w: 12.6, d: 12.6, reach: 70, armOff: 0, round: true },
-    { ...base, id: 'so101-1', type: 'so101', name: 'SO-101 #1', x: 282, y: 420, rot: 90, w: 11, d: 9, reach: 44, armOff: 0, round: false },
-    { ...base, id: 'so101-2', type: 'so101', name: 'SO-101 #2', x: 282, y: 380, rot: 90, w: 11, d: 9, reach: 44, armOff: 0, round: false },
+    { ...base, id: 'so101-1', type: 'so101', name: 'SO-101 #1', x: 282, y: P.so + 20, rot: 90, w: 11, d: 9, reach: 44, armOff: 0, round: false },
+    { ...base, id: 'so101-2', type: 'so101', name: 'SO-101 #2', x: 282, y: P.so - 20, rot: 90, w: 11, d: 9, reach: 44, armOff: 0, round: false },
   ];
 }
-function defaultTeleop() {
+function defaultTeleop(P) {
   // SO-101 원격 조작: 팔로워 두 대를 테이블 가운데에 40 cm 간격으로 모아 같은 물체를 함께 다룰 수 있게 하고, 리더 암은 양 끝에 하나씩 (짝 팔로워에서 30 cm)
-  const lead = { type: 'so101l', cat: 'equip', x: 282, rot: 90, w: 11, d: 9, reach: 44 };
-  return [{ ...lead, id: 'so101l-1', name: '리더 #1', y: 450 }, { ...lead, id: 'so101l-2', name: '리더 #2', y: 350 }];
+  const lead = { type: 'so101l', cat: 'equip', x: 282, rot: 90, w: 11, d: 9 }; // 리더는 작업 반경 원을 그리지 않음 (선택한 뒤 반경을 넣으면 옅은 점선 원으로 표시)
+  return [{ ...lead, id: 'so101l-1', name: '리더 #1', y: P.so + 50 }, { ...lead, id: 'so101l-2', name: '리더 #2', y: P.so - 50 }];
 }
-function defaultDesk() {
-  // 워크스테이션: 왼쪽 벽에 붙인 책상(책상 1과 OpenArm 사이). 모니터, 키보드, 본체는 책상 그림에 들어 있고, 방 쪽에 의자
+function defaultDesk(P) {
+  // 워크스테이션: 왼쪽 벽 쪽 책상(창문 쪽 책상과 OpenArm 사이). 모니터, 키보드, 본체는 책상 그림에 들어 있고, 방 쪽에 의자
   return [
-    { id: 'ws-desk', type: 'wsdesk', name: '워크스테이션', cat: 'furn', x: 40, y: 330, w: 160, d: 80, rot: 90 },
-    { id: 'ws-chair', type: 'chair', name: '의자', cat: 'furn', x: 110, y: 330, w: 55, d: 55, round: true, soft: true },
+    { id: 'ws-desk', type: 'wsdesk', name: '워크스테이션', cat: 'furn', x: P.ws[0], y: P.ws[1], w: 160, d: 80, rot: 90 },
+    { id: 'ws-chair', type: 'chair', name: '의자', cat: 'furn', x: P.ws[0] + 70, y: P.ws[1], w: 55, d: 55, round: true, soft: true },
   ];
 }
-function defaultItems(room) {
-  // 계획: 책상 2개를 실험실 끝(창문 쪽) 양쪽 벽에 하나씩, 창문에서 30cm
-  const arms = defaultArms().map(cleanItem);
-  return [
-    { id: 'desk-l', type: 'desk', name: '책상 1', cat: 'furn', x: 40, y: 110, w: 160, d: 80, rot: 90, reach: 0, round: false, soft: false, lock: false },
-    { id: 'desk-r', type: 'desk', name: '책상 2', cat: 'furn', x: room.w - 40, y: 110, w: 160, d: 80, rot: 90, reach: 0, round: false, soft: false, lock: false },
-  ].map(cleanItem).concat(defaultDesk().map(cleanItem), seatRobots(arms), arms, defaultTeleop().map(cleanItem));
+function defaultItems(room, n) {
+  // 책상은 실험실 끝(창문 쪽) 양쪽 벽에, 창문에서 30cm. 4개 안은 그 아래에 하나씩 더 붙여 놓음
+  const P = PLANS[n] || PLANS[2], arms = defaultArms(P).map(cleanItem);
+  const desk = (id, k, x, y) => ({ id, type: 'desk', name: '책상 ' + k, cat: 'furn', x, y, w: 160, d: 80, rot: 90 });
+  const desks = [desk('desk-l', 1, 40, 110), desk('desk-r', 2, room.w - 40, 110)];
+  if (P === PLANS[4]) desks.push(desk('desk-l2', 3, 40, 270), desk('desk-r2', 4, room.w - 40, 270));
+  return desks.concat(defaultDesk(P)).map(cleanItem).concat(seatRobots(arms), arms, defaultTeleop(P).map(cleanItem));
 }
 function seatRobots(items) { // 테이블 없이 서 있는 로봇 밑에 깔 테이블을 만들어 돌려줌. 로봇 자리는 그대로 두고, 나란히 선 SO-101 두 대는 한 테이블에
   const out = [], seated = it => items.concat(out).some(o => isSurface(o) && inPoly(poly(o), it.x, it.y));
@@ -1159,8 +1167,11 @@ document.addEventListener('keydown', e => {
 });
 
 /* ───────── toolbar ───────── */
+const planSig = items => JSON.stringify(items.slice().sort((a, b) => a.id < b.id ? -1 : 1));
+const PLAN_SIG = {}; for (const n of [2, 4]) PLAN_SIG[n] = planSig(defaultItems(defaultRoom(), n));
 function syncToolbar() {
   $('t-undo').disabled = hi <= 0; $('t-redo').disabled = hi >= hist.length - 1;
+  const sig = planSig(state.items); for (const n of [2, 4]) $('p-' + n).setAttribute('aria-pressed', String(sig === PLAN_SIG[n])); // 손대지 않은 배치안이면 그 버튼을 눌린 모양으로
   $('t-snap').value = String(ui.snap);
   $('t-measure').setAttribute('aria-pressed', String(ui.measure));
   $('t-reach').setAttribute('aria-pressed', String(ui.reach));
@@ -1174,10 +1185,11 @@ $('t-reach').addEventListener('click', () => { ui.reach = !ui.reach; saveUi(); s
 $('t-zin').addEventListener('click', () => zoomAt(1.25));
 $('t-zout').addEventListener('click', () => zoomAt(0.8));
 $('t-fit').addEventListener('click', () => { fit(); schedule(); });
-$('t-reset').addEventListener('click', () => {
-  const room = defaultRoom(); state = { room, items: defaultItems(room) }; ui.sel = null;
-  fit(); commit(); schedule(); toast('처음 배치로 되돌렸습니다. 되돌리기로 취소할 수 있습니다.');
-});
+function applyPlan(n) { // 배치안 불러오기. 되돌리기로 이전 배치를 복구할 수 있음
+  const room = defaultRoom(); state = { room, items: defaultItems(room, n) }; ui.sel = null;
+  fit(); commit(); schedule(); toast(`책상 ${n}개를 남기는 배치를 불러왔습니다. 되돌리기로 취소할 수 있습니다.`);
+}
+for (const n of [2, 4]) $('p-' + n).addEventListener('click', () => applyPlan(n));
 let toastT = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3600); }
 
