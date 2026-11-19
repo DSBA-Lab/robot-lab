@@ -25,7 +25,7 @@
   --reach-xa-fill:rgba(28,31,38,.03); --reach-xa-line:#ffffff; --reach-xa-case:#858c98; --reach-xa-ink:#858c98;
   --reach-so-fill:rgba(236,180,0,.11); --reach-so-line:#d6a100;
   --ot-fill:#d3d7dd; --ot-line:#5f6672; --ot-hole:#99a0ab;
-  --bot-d:#2b303a; --bot-d-line:#9aa3b2; --bot-l:#f3f4f6; --bot-l-line:#5b6370; --bot-y:#f4c430; --bot-y-line:#8a6a00;
+  --bot-d:#2b303a; --bot-d-line:#9aa3b2; --bot-l:#f3f4f6; --bot-l-line:#5b6370; --bot-y:#f4c430; --bot-y-line:#8a6a00; --bot-y-soft:#fdf3c4;
   --bad:#c93a3a; --bad-fill:rgba(201,58,58,.16); --ok:#2e7d4f;
   --stage3d:#dde0e5; --stage3d-hi:#e7e9ed; --stage-grid:#c2c7cf; --stage-axis:#9aa0ab;
   --font-ui:"Inter","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
@@ -49,7 +49,7 @@
     --reach-xa-fill:rgba(255,255,255,.045); --reach-xa-line:#f4f5f7; --reach-xa-case:transparent; --reach-xa-ink:#f4f5f7;
     --reach-so-fill:rgba(245,200,66,.09); --reach-so-line:#f2c744;
     --ot-fill:#30353f; --ot-line:#a0a6b1; --ot-hole:#59606d;
-    --bot-d:#3d4555; --bot-d-line:#aeb6c4; --bot-l:#e9ebef; --bot-l-line:#4d5460; --bot-y:#f2c744; --bot-y-line:#6f5300;
+    --bot-d:#3d4555; --bot-d-line:#aeb6c4; --bot-l:#e9ebef; --bot-l-line:#4d5460; --bot-y:#f2c744; --bot-y-line:#6f5300; --bot-y-soft:#4b4018;
     --bad:#f07070; --bad-fill:rgba(240,112,112,.22); --ok:#62c48a;
     --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492;
     color-scheme:dark;
@@ -72,7 +72,7 @@
   --reach-xa-fill:rgba(255,255,255,.045); --reach-xa-line:#f4f5f7; --reach-xa-case:transparent; --reach-xa-ink:#f4f5f7;
   --reach-so-fill:rgba(245,200,66,.09); --reach-so-line:#f2c744;
   --ot-fill:#30353f; --ot-line:#a0a6b1; --ot-hole:#59606d;
-  --bot-d:#3d4555; --bot-d-line:#aeb6c4; --bot-l:#e9ebef; --bot-l-line:#4d5460; --bot-y:#f2c744; --bot-y-line:#6f5300;
+  --bot-d:#3d4555; --bot-d-line:#aeb6c4; --bot-l:#e9ebef; --bot-l-line:#4d5460; --bot-y:#f2c744; --bot-y-line:#6f5300; --bot-y-soft:#4b4018;
   --bad:#f07070; --bad-fill:rgba(240,112,112,.22); --ok:#62c48a;
   --stage3d:#3b404a; --stage3d-hi:#454b56; --stage-grid:#565c68; --stage-axis:#7d8492;
   color-scheme:dark;
@@ -289,6 +289,7 @@ details.sec[open] > summary{margin-bottom:10px}
 .glyph .gl{fill:var(--bot-l);stroke:var(--bot-l-line)}
 .glyph .gd{fill:var(--bot-d);stroke:var(--bot-d-line)}
 .g-so101 .gl{fill:var(--bot-y);stroke:var(--bot-y-line)}
+.g-so101l .gl{fill:var(--bot-y-soft);stroke:var(--reach-so-line)} /* leader arm: same outline as the follower, drawn pale */
 .rlbl{fill:var(--ink);pointer-events:none;paint-order:stroke;stroke:var(--floor);stroke-linejoin:round}
 .item .mark{fill:var(--robot-ink);stroke:none}
 .item .lbl{fill:var(--ink);pointer-events:none}
@@ -483,8 +484,9 @@ const SPECS = {
   openarm2: 'OpenArm 2.0 · 양팔 7자유도 · 팔 리치 606 mm, 팔당 5.5 kg (공식 문서) · 베이스 플레이트 19 × 25 cm, 팔을 내린 전체 폭 41 cm, 어깨 간격 30.5 cm (공식 URDF 모델 기준).',
   xarm7: 'UFACTORY xArm 7 · 7자유도 · 가반하중 3.5 kg · 리치 700 mm · 베이스 Ø126 mm · 본체 13.7 kg · 별도 컨트롤 박스가 필요합니다.',
   so101: 'SO-101 · 베이스 약 11 × 9 cm (공개 CAD 기준) · 리치 약 44 cm (공개 URDF 링크 길이 합산, 그리퍼 끝 기준).',
+  so101l: 'SO-101 리더 암 · 팔로워를 원격 조작하는 장치. 크기와 관절 구조는 팔로워와 같고 집게 대신 손잡이가 달려 있습니다. 팔로워 옆, 같은 테이블 끝에 클램프로 고정하고 조작자가 그 뒤에 앉습니다.',
 };
-const TOP_TYPES = new Set(['openarm2', 'xarm7', 'so101', 'arm', 'pc']); // 책상·테이블 위에 올릴 수 있는 것
+const TOP_TYPES = new Set(['openarm2', 'xarm7', 'so101', 'so101l', 'arm', 'pc']); // 책상·테이블 위에 올릴 수 있는 것
 /* 로봇을 올려 쓰는 테이블: [종류, 이름, 가로, 세로, 테이블 뒤쪽 끝에서 로봇 중심까지]. 로봇은 가로로 가운데, 세로로 끝에 둠.
    OpenArm은 베이스 플레이트(깊이 25)를, xArm7은 베이스 뒤 커넥터(중심에서 9.2)를 테이블 끝에 맞춤. SO-101은 클램프로 물리므로 테이블 끝에 붙임 */
 const SEAT = { openarm2: ['otable', '광학 테이블', 80, 60, 12.5], xarm7: ['otable', '광학 테이블', 80, 60, 10], so101: ['table', 'SO-101 테이블', 140, 70, 5] };
@@ -496,6 +498,7 @@ const TOP = {
   so101: { box: [-5.5, -24.3, 5.5, 4.8], parts: ["dM-1.2 -2.9L-0.9 -3.2L0.9 -3.2L1.2 -2.9L1.2 1.1L1 1.3L-1 1.3L-1.2 1.1Z","lM-5.5 -0.8L-3.3 -4.6L-3.1 -4.8L3.1 -4.8L3.3 -4.6L5.5 -0.8L5.5 0.2L4.3 3.8L2.6 4.8L-2.5 4.8L-4.3 3.8L-5.5 0.2Z","lM-2.6 -6.5L-2.4 -7L-1.8 -7.2L1.8 -7.2L2.5 -7L2.6 -6.4L2.6 -4.5L2.5 -4.1L1 -1.5L0 -1L-1 -1.5L-2.9 -4.2Z","dM-2 -6.1L-1.6 -6.5L1.5 -6.5L1.8 -6.2L2 -5L1.8 -4.2L1.5 -4L-1.6 -4L-2 -4.4Z","lM-2.2 -21.7L-0.5 -24.1L0.1 -24.3L0.8 -23.9L2.2 -22.1L2.6 -21.5L2.5 -19.5L2.2 -19.4L-2.2 -19.6L-2.3 -19.7Z","dM-1.7 -21.6L-1.3 -21.9L1.6 -21.8L1.9 -21.4L2 -18.7L1.7 -17.4L1.4 -16.9L-1.5 -17L-1.8 -17.3L-1.9 -20.4Z","lM-2.4 -19.4L-2.1 -20.2L-0.4 -22.3L0.4 -22.3L2.3 -20.1L2.9 -19L2.8 -17.9L2.3 -16.7L1.4 -15.1L1.1 -14.9L-1.4 -15L-1.7 -15.2L-2.4 -16.9Z","dM-3.5 -18.2L-2.9 -18.4L0.7 -18.3L1 -18.1L1 -14.9L0.7 -14.7L-0.8 -14.6L-3.3 -14.6L-3.5 -14.9Z","lM-3.5 -18.7L-1.9 -19L0.9 -18.5L1.8 -18L2.5 -17.4L2.7 -16.9L2.7 -13.5L2.2 -13L-2.2 -13L-2.6 -13.2L-3.5 -14.4Z","dM-1.8 -15.2L-1.5 -15.5L1.4 -15.5L1.8 -15.2L2 -14L1.7 -10.7L1.4 -10.5L-1.5 -10.5L-1.8 -11.1L-2 -12.6Z","lM-3.5 -4.8L-3.1 -6.1L-2.7 -6.4L2.7 -6.4L3.2 -5.9L3.2 -1.1L2.5 2.7L2 3L-2 3L-2.5 2.7L-3.6 -3.4Z","lM-3.4 -3.3L-3 -12.1L-2.4 -13.1L-1.8 -13.2L1.9 -13.1L2.6 -12.8L3 -5.2L3 -0.5L2.5 0L-1.8 0L-2.3 -0.3L-3.4 -2.1Z","dM-2 -0.5L-1.8 -2.2L-1.5 -2.6L1.4 -2.6L1.8 -2.2L2 -1L1.7 2.1L1.4 2.3L-1.5 2.3L-1.8 1.8Z"] },
 };
 for (const g of Object.values(TOP)) g.svg = g.parts.map(q => `<path class="g${q[0]}" d="${q.slice(1)}"/>`).join('');
+TOP.so101l = TOP.so101; // 리더 암은 팔로워와 같은 윤곽으로 그리고 색만 옅게 (실물은 집게 대신 손잡이)
 const CATALOG = [
   { group: '로봇', items: [
     { type: 'openarm2', name: 'OpenArm 2.0', w: 41,   d: 25,   reach: 60.6, armOff: 15.25, cat: 'robot' },
@@ -511,6 +514,7 @@ const CATALOG = [
   ]},
   { group: '장비', items: [
     { type: 'pc',     name: '워크스테이션', w: 25, d: 55,  reach: 0, cat: 'equip' },
+    { type: 'so101l', name: 'SO-101 리더', w: 11, d: 9, reach: 0, cat: 'equip' },
     { type: 'tripod', name: '카메라 삼각대', w: 70, d: 70,  reach: 0, cat: 'equip', round: true },
   ]},
 ];
@@ -532,14 +536,23 @@ const norm = a => ((a % 360) + 360) % 360;
 
 const defaultRoom = () => ({ ...ROOM });
 function defaultArms() {
-  // 보유 로봇팔 4대. 책상에서 떨어진 방 아래쪽 절반에 둠: OpenArm은 왼쪽 벽 가까이에서 방 안쪽을 보고, SO-101 두 대는 오른쪽 벽 쪽에 세로로 놓인 테이블에서 방 안쪽을,
-  // xArm7은 문 맞은편 구석에서 창문 쪽을 봄. 테이블은 seatRobots가 밑에 깔아 줌 (광학 테이블 중심 (80, 550)과 (275, 755), SO-101 테이블 중심 (270, 400))
+  // 보유 로봇팔 4대. 책상에서 떨어진 방 아래쪽 절반에 둠: OpenArm은 왼쪽 벽 가까이에서 방 안쪽을, xArm7은 문 맞은편 구석에서 창문 쪽을 봄.
+  // SO-101 두 대는 오른쪽 벽에 붙인 테이블의 방 쪽 끝에 물려 벽을 봄 (조작자가 그 뒤, 방 쪽에 앉음). 테이블은 seatRobots가 밑에 깔아 줌
   const base = { cat: 'robot', soft: false, lock: false };
   return [
     { ...base, id: 'openarm', type: 'openarm2', name: 'OpenArm 2.0', x: 62.5, y: 550, rot: 90, w: 41, d: 25, reach: 60.6, armOff: 15.25, round: false },
     { ...base, id: 'xarm7', type: 'xarm7', name: 'xArm7', x: 275, y: 775, rot: 0, w: 12.6, d: 12.6, reach: 70, armOff: 0, round: true },
-    { ...base, id: 'so101-1', type: 'so101', name: 'SO-101 #1', x: 300, y: 445, rot: 270, w: 11, d: 9, reach: 44, armOff: 0, round: false },
-    { ...base, id: 'so101-2', type: 'so101', name: 'SO-101 #2', x: 300, y: 355, rot: 270, w: 11, d: 9, reach: 44, armOff: 0, round: false },
+    { ...base, id: 'so101-1', type: 'so101', name: 'SO-101 #1', x: 282, y: 450, rot: 90, w: 11, d: 9, reach: 44, armOff: 0, round: false },
+    { ...base, id: 'so101-2', type: 'so101', name: 'SO-101 #2', x: 282, y: 350, rot: 90, w: 11, d: 9, reach: 44, armOff: 0, round: false },
+  ];
+}
+function defaultTeleop() {
+  // SO-101 원격 조작: 리더 암 두 대를 팔로워 사이에 35 cm 간격으로 두어 한 사람이 양손으로 잡을 수 있게 하고, 그 뒤에 조작자 의자
+  const lead = { type: 'so101l', cat: 'equip', x: 282, rot: 90, w: 11, d: 9 };
+  return [
+    { ...lead, id: 'so101l-1', name: '리더 #1', y: 417.5 },
+    { ...lead, id: 'so101l-2', name: '리더 #2', y: 382.5 },
+    { id: 'seat-so101', type: 'chair', name: '조작자', cat: 'furn', x: 225, y: 400, w: 55, d: 55, round: true, soft: true },
   ];
 }
 function defaultItems(room) {
@@ -548,7 +561,7 @@ function defaultItems(room) {
   return [
     { id: 'desk-l', type: 'desk', name: '책상 1', cat: 'furn', x: 40, y: 110, w: 160, d: 80, rot: 90, reach: 0, round: false, soft: false, lock: false },
     { id: 'desk-r', type: 'desk', name: '책상 2', cat: 'furn', x: room.w - 40, y: 110, w: 160, d: 80, rot: 90, reach: 0, round: false, soft: false, lock: false },
-  ].map(cleanItem).concat(seatRobots(arms), arms);
+  ].map(cleanItem).concat(seatRobots(arms), arms, defaultTeleop().map(cleanItem));
 }
 function seatRobots(items) { // 테이블 없이 서 있는 로봇 밑에 깔 테이블을 만들어 돌려줌. 로봇 자리는 그대로 두고, 나란히 선 SO-101 두 대는 한 테이블에
   const out = [], seated = it => items.concat(out).some(o => isSurface(o) && inPoly(poly(o), it.x, it.y));
@@ -786,7 +799,7 @@ function render() {
     const sides = back === 'd' || back === 'u' ? (it.x - U.x0 <= U.x1 - it.x ? ['l', 'r'] : ['r', 'l']) : (it.y - U.y0 <= U.y1 - it.y ? ['u', 'd'] : ['d', 'u']);
     const tries = [back, ...sides, { d: 'u', u: 'd', l: 'r', r: 'l' }[back]];
     const inRoom = b => b.x0 >= 0 && b.y0 >= 0 && b.x1 <= W && b.y1 <= D;
-    const free = b => !placed.some(q => boxHit(q, b)) && !state.items.some((o, k) => k !== i && k !== under[i] && o.cat !== 'zone' && boxHit(gb[k] ? boxJoin(gb[k], an[k].bb) : an[k].bb, b));
+    const free = b => !placed.some(q => boxHit(q, b)) && !state.items.some((o, k) => k !== i && k !== under[i] && solid(o) && boxHit(gb[k] ? boxJoin(gb[k], an[k].bb) : an[k].bb, b));
     const k = tries.find(k => inRoom(box(k)) && free(box(k))) || tries.find(k => inRoom(box(k))) || back;
     placed.push(box(k));
     return `<text class="rlbl" x="${r2(cand[k][0])}" y="${r2(cand[k][1])}" font-size="${fs}" stroke-width="${px(3)}" text-anchor="${cand[k][2]}">${esc(it.name)}</text>`;
