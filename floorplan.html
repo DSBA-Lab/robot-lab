@@ -90,7 +90,7 @@ button,input,select,textarea{font:inherit;color:inherit}
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   border-bottom:1px solid var(--line);background:var(--panel)}
 .bar h1{display:flex;align-items:center;gap:8px;margin:0 auto 0 0;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
-.bar h1 img{flex:none;width:22px;height:22px;display:block}
+.bar h1 svg{flex:none;width:22px;height:22px;display:block} /* the favicon mark (assets/favicon.svg), inlined */
 .tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 .tg{display:flex;align-items:center;gap:2px}
 .tg + .tg{padding-left:10px;border-left:1px solid var(--line)}
@@ -348,7 +348,7 @@ details.sec[open] > summary{margin-bottom:10px}
 
 <div class="app">
   <header class="bar">
-    <h1><img src="assets/dsba_logo_imageonly.png" alt="" width="22" height="22">DSBA Robot Lab</h1>
+    <h1><svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><rect width="64" height="64" rx="12" fill="#203864"/><g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 53h22"/><path d="M23 46L30 23L47 30"/><path d="M40 41v-6q0-5 7-5t7 5v6"/></g><g fill="#203864" stroke="#fff" stroke-width="4.5"><circle cx="23" cy="46" r="5.5"/><circle cx="30" cy="23" r="5.5"/></g></svg>DSBA Robot Lab</h1>
     <div class="tools" role="toolbar" aria-label="도구">
       <div class="tg">
         <button type="button" id="t-undo" title="되돌리기 (Ctrl+Z)">되돌리기</button>
