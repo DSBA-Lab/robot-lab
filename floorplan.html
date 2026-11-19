@@ -531,13 +531,14 @@ const norm = a => ((a % 360) + 360) % 360;
 
 const defaultRoom = () => ({ ...ROOM });
 function defaultArms() {
-  // 보유 로봇팔 4대. 위치는 임시로 방 가운데에 둔 것. 테이블은 seatRobots가 밑에 깔아 줌
-  const base = { cat: 'robot', rot: 0, soft: false, lock: false };
+  // 보유 로봇팔 4대. 책상에서 떨어진 방 아래쪽 절반에 둠: OpenArm은 왼쪽 벽 가까이에서 방 안쪽을 보고, SO-101 두 대는 오른쪽 벽 쪽에 세로로 놓인 테이블에서 방 안쪽을,
+  // xArm7은 문 맞은편 구석에서 창문 쪽을 봄. 테이블은 seatRobots가 밑에 깔아 줌 (광학 테이블 중심 (80, 550)과 (275, 755), SO-101 테이블 중심 (270, 400))
+  const base = { cat: 'robot', soft: false, lock: false };
   return [
-    { ...base, id: 'openarm', type: 'openarm2', name: 'OpenArm 2.0', x: 173.5, y: 300, w: 41, d: 25, reach: 60.6, armOff: 15.25, round: false },
-    { ...base, id: 'xarm7', type: 'xarm7', name: 'xArm7', x: 173.5, y: 470, w: 12.6, d: 12.6, reach: 70, armOff: 0, round: true },
-    { ...base, id: 'so101-1', type: 'so101', name: 'SO-101 #1', x: 125, y: 620, w: 11, d: 9, reach: 44, armOff: 0, round: false },
-    { ...base, id: 'so101-2', type: 'so101', name: 'SO-101 #2', x: 225, y: 620, w: 11, d: 9, reach: 44, armOff: 0, round: false },
+    { ...base, id: 'openarm', type: 'openarm2', name: 'OpenArm 2.0', x: 62.5, y: 550, rot: 90, w: 41, d: 25, reach: 60.6, armOff: 15.25, round: false },
+    { ...base, id: 'xarm7', type: 'xarm7', name: 'xArm7', x: 275, y: 775, rot: 0, w: 12.6, d: 12.6, reach: 70, armOff: 0, round: true },
+    { ...base, id: 'so101-1', type: 'so101', name: 'SO-101 #1', x: 300, y: 445, rot: 270, w: 11, d: 9, reach: 44, armOff: 0, round: false },
+    { ...base, id: 'so101-2', type: 'so101', name: 'SO-101 #2', x: 300, y: 355, rot: 270, w: 11, d: 9, reach: 44, armOff: 0, round: false },
   ];
 }
 function defaultItems(room) {
